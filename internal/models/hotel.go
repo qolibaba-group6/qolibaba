@@ -1,8 +1,7 @@
 package models
 
 import (
-	"database/sql/driver"
-	"encoding/json"
+	"qolibaba/pkg/json"
 	"time"
 )
 
@@ -49,31 +48,11 @@ type Booking struct {
 	ID         uint      `gorm:"primaryKey"`
 	RoomID     uint      `gorm:"not null"`
 	UserID     uint      `gorm:"not null"`
-	UserInfo   JSON      `gorm:"type:json"`
+	UserInfo   json.JSON `gorm:"type:json"`
 	StartTime  time.Time `gorm:"not null" validate:"required"`
 	EndTime    time.Time `gorm:"not null" validate:"required,gtfield=StartTime"`
 	TotalPrice float64   `gorm:"type:decimal(10,2);not null" validate:"required,gt=0"`
 	Status     string    `gorm:"type:enum('pending','confirmed','completed');not null" validate:"required,oneof=pending confirmed completed"`
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
-}
-
-// JSON is a custom type for handling JSON fields in GORM
-type JSON map[string]interface{}
-
-// Scan method for JSON
-func (j *JSON) Scan(value interface{}) error {
-	if value == nil {
-		*j = nil
-		return nil
-	}
-	return json.Unmarshal(value.([]byte), j)
-}
-
-// Value method for JSON
-func (j JSON) Value() (driver.Value, error) {
-	if j == nil {
-		return nil, nil
-	}
-	return json.Marshal(j)
 }

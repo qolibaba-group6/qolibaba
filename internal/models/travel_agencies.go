@@ -1,6 +1,7 @@
 package models
 
 import (
+	"qolibaba/pkg/json"
 	"time"
 )
 
@@ -28,9 +29,9 @@ type Tour struct {
 	GoingTravelID       uint      `gorm:"not null"`  // References a travel option (e.g., flight/train)
 	ReturningTravelID   uint      `gorm:"not null"`  // References a travel option (e.g., flight/train)
 	HotelID             uint      `gorm:"not null"`  // References the hotel for the tour
-	GoingTravelData     JSON      `gorm:"type:json"` // Stores JSON data for the going travel
-	ReturningTravelData JSON      `gorm:"type:json"` // Stores JSON data for the returning travel
-	HotelData           JSON      `gorm:"type:json"` // Stores JSON data for the hotel
+	GoingTravelData     json.JSON `gorm:"type:json"` // Stores JSON data for the going travel
+	ReturningTravelData json.JSON `gorm:"type:json"` // Stores JSON data for the returning travel
+	HotelData           json.JSON `gorm:"type:json"` // Stores JSON data for the hotel
 	Price               float64   `gorm:"type:decimal(10,2);not null" validate:"required,gt=0"`
 	ReleaseDate         time.Time `gorm:"not null" validate:"required"`
 	CreatedAt           time.Time

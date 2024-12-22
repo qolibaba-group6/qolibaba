@@ -1,7 +1,9 @@
 package http
 
 import (
+	"context"
 	"fmt"
+	"qolibaba/api/service"
 	"qolibaba/app"
 	"qolibaba/config"
 
@@ -19,6 +21,9 @@ func Run(appContainer app.App, cfg config.ServerConfig) error {
 }
 
 func registerAuthAPI(appContainer app.App, cfg config.ServerConfig, router fiber.Router) {
+	userService := appContainer.UserService(context.Background())
+	router.Post("/sign-up", SignUp(service.NewUserService(userService,
+		cfg.Secret, cfg.AuthExpMinute, cfg.AuthRefreshMinute)))
 	// userSvcGetter := userServiceGetter(appContainer, cfg)
 	// router.Post("/sign-up", setTransaction(appContainer.DB()), SignUp(userSvcGetter))
 	// router.Get("/send-otp", setTransaction(appContainer.DB()), SendSignInOTP(userSvcGetter))

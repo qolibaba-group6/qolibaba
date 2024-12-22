@@ -1,9 +1,10 @@
 package config
 
 type Config struct {
-	DB     DBConfig     `json:"db"`
-	Server ServerConfig `json:"server"`
-	Redis  RedisConfig  `json:"redis"`
+	DB         DBConfig     `json:"db"`
+	Server     ServerConfig `json:"server"`
+	Redis      RedisConfig  `json:"redis"`
+	SuperAdmin SuperAdmin   `json:"superAdmin"`
 }
 
 type DBConfig struct {
@@ -25,4 +26,9 @@ type ServerConfig struct {
 type RedisConfig struct {
 	Host string `json:"host"`
 	Port uint   `json:"port"`
+}
+
+type SuperAdmin struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }

@@ -7,5 +7,5 @@ import (
 
 type UserClaims struct {
 	jwt.RegisteredClaims
-	userID uuid.UUID
+	UserID uuid.UUID
 }

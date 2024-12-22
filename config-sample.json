@@ -5,5 +5,11 @@
         "database": "",
         "user": "",
         "password": ""
+    },
+    "server": {
+        "httpPort": 8080,
+        "secret": "123456@#$",
+        "authExpMin": 30,
+        "authExpRefreshMin": 180
     }
 }

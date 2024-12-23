@@ -1,7 +1,6 @@
 package models
 
 import (
-	"qolibaba/pkg/json"
 	"time"
 )
 
@@ -31,16 +30,18 @@ type Hotel struct {
 
 // Room model
 type Room struct {
-	ID        uint      `gorm:"primaryKey"`
-	HotelID   uint      `gorm:"not null"`
-	Type      string    `gorm:"type:enum('single','double','suite');not null" validate:"required,oneof=single double suite"`
-	Price     float64   `gorm:"type:decimal(10,2);not null" validate:"required,gt=0"`
-	Capacity  int       `gorm:"not null" validate:"required,gt=0"`
-	Features  string    `gorm:"type:text"`
-	Duration  string    `gorm:"type:enum('12 hours','24 hours');not null" validate:"required,oneof=12 hours 24 hours"`
-	Bookings  []Booking `gorm:"constraint:OnDelete:CASCADE"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID                uint      `gorm:"primaryKey"`
+	HotelID           uint      `gorm:"not null"`
+	Type              string    `gorm:"type:enum('single','double','suite');not null" validate:"required,oneof=single double suite"`
+	Price             float64   `gorm:"type:decimal(10,2);not null" validate:"required,gt=0"`
+	Capacity          int       `gorm:"not null" validate:"required,gt=0"`
+	Features          string    `gorm:"type:text"`
+	Duration          string    `gorm:"type:enum('12 hours','24 hours');not null" validate:"required,oneof=12 hours 24 hours"`
+	PublicReleaseDate time.Time `gorm:"not null" validate:"required"` // Public visibility date
+	AgencyReleaseDate time.Time `gorm:"not null" validate:"required"` // Agency-specific visibility date
+	Bookings          []Booking `gorm:"constraint:OnDelete:CASCADE"`
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 // Booking model
@@ -48,7 +49,6 @@ type Booking struct {
 	ID         uint      `gorm:"primaryKey"`
 	RoomID     uint      `gorm:"not null"`
 	UserID     uint      `gorm:"not null"`
-	UserInfo   json.JSON `gorm:"type:json"`
 	StartTime  time.Time `gorm:"not null" validate:"required"`
 	EndTime    time.Time `gorm:"not null" validate:"required,gtfield=StartTime"`
 	TotalPrice float64   `gorm:"type:decimal(10,2);not null" validate:"required,gt=0"`

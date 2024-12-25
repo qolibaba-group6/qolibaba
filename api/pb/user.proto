@@ -15,3 +15,13 @@ message UserSignUpResponse {
     string accessToken = 1 [json_name = "accessToken"];
     string refreshToken = 2 [json_name = "refreshToken"];
 }
+
+message UserSignInRequest {
+    string email = 1 [json_name = "email"];
+    string password = 2 [json_name = "password"];
+}
+
+message UserSignInResponse {
+    string accessToken = 1 [json_name = "accessToken"];
+    string refreshToken = 2 [json_name = "refreshToken"];
+}

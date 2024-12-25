@@ -29,6 +29,13 @@ func NilUserUUID() UserUUID {
 	return UserUUID(uuid.Nil)
 }
 
+func IsValidateUserUUID(id UserUUID) bool {
+	if err := uuid.Validate(id.String()); err != nil {
+		return false
+	}
+	return true
+}
+
 func (e Email) IsValid() bool {
 	emailRegex := `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
 	r := regexp.MustCompile(emailRegex)
@@ -62,6 +69,11 @@ func NewPassword(pass string) string {
 	return base64.URLEncoding.EncodeToString(h.Sum(nil))
 }
 
-type UserListFilters struct {
-	// TODO
+type UserFilter struct {
+	ID UserUUID
+	Email Email
+}
+
+func (f *UserFilter) IsValid() bool {
+	return IsValidateUserUUID(f.ID) || f.Email.IsValid()
 }

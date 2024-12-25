@@ -15,6 +15,8 @@ import (
 var (
 	ErrUserCreationValidation = user.ErrUserCreationValidation
 	ErrUserOnCreate           = user.ErrUserOnCreate
+	ErrUserNotFound           = user.ErrUserNotFound
+	ErrInvalidUserPassword    = user.ErrInvalidUserPassword
 )
 
 type UserService struct {
@@ -38,7 +40,7 @@ func (s *UserService) SignUp(ctx context.Context, req *pb.UserSignUpRequest) (*p
 		FirstName: req.GetFirstName(),
 		LastName:  req.GetLastName(),
 		Email:     domain.Email(req.GetEmail()),
-		Password:  req.GetPassword(),
+		Password:  domain.NewPassword(req.GetPassword()),
 	})
 
 	if err != nil {
@@ -51,6 +53,33 @@ func (s *UserService) SignUp(ctx context.Context, req *pb.UserSignUpRequest) (*p
 	}
 
 	return &pb.UserSignUpResponse{
+		AccessToken:  access,
+		RefreshToken: refresh,
+	}, nil
+}
+
+func (s *UserService) SingIn(ctx context.Context, req *pb.UserSignInRequest) (*pb.UserSignInResponse, error) {
+	user, err := s.svc.GetByFilter(ctx, domain.UserFilter{
+		Email: domain.Email(req.Email),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if user == nil {
+		return nil, ErrUserNotFound
+	}
+
+	if user.PasswordIsCorrect(req.GetPassword()) {
+		return nil, ErrInvalidUserPassword
+	}
+	
+	access, refresh, err := s.createTokens(user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.UserSignInResponse{
 		AccessToken:  access,
 		RefreshToken: refresh,
 	}, nil

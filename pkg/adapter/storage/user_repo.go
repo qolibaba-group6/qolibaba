@@ -12,6 +12,10 @@ import (
 	"gorm.io/gorm"
 )
 
+var (
+	ErrInvalidUserFilter = errors.New("invalid user filter")
+)
+
 type userRepo struct {
 	db *gorm.DB
 }
@@ -44,6 +48,32 @@ func (r *userRepo) GetByID(ctx context.Context, userID domain.UserUUID) (*domain
 	return mapper.UserStorage2Domain(user), nil
 }
 
-func (r *userRepo) Get(ctx context.Context, filter domain.UserListFilters) ([]domain.User, error) {
-	panic("not implemented")
+func (r *userRepo) GetByFilter(ctx context.Context, filter domain.UserFilter) (*domain.User, error) {
+	var user types.User
+
+	q := r.db.Table("users").Debug().WithContext(ctx)
+
+	if !filter.IsValid() {
+		return nil, ErrInvalidUserFilter
+	}
+
+	if  filter.ID != domain.NilUserUUID() {
+		q = q.Where("id = ?", filter.ID)
+	}
+
+	if filter.Email.IsValid() {
+		q = q.Where("email = ?", filter.Email)
+	}
+
+	err := q.First(&user).Error
+	
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	if user.ID == domain.NilUserUUID() {
+		return nil, nil
+	}
+	
+	return mapper.UserStorage2Domain(user), nil
 }

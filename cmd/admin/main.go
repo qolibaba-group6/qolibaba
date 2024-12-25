@@ -17,7 +17,6 @@ import (
 
 var (
 	configPath = flag.String("config", "config.json", "service configuration file")
-	port = flag.Int("port", 50051, "The server port")
 )
 
 func main() {
@@ -27,18 +26,19 @@ func main() {
 		*configPath = v
 	}
 
-	c := config.MustReadConfig(*configPath)
+	cfg := config.MustReadConfig(*configPath)
 
-	adminApp := admin.NewMustApp(c)
+	adminApp := admin.NewMustApp(cfg)
 
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.AdminService.Port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
 	grpcServer := grpc.NewServer()
 	
-	svc := grpcAPI.NewAdminGRPCServer(*service.NewAdminService(adminApp.AdminService()))
+	svc := grpcAPI.NewAdminGRPCServer(*service.NewAdminService(
+		adminApp.AdminService(), cfg.AdminService))
 
 	pb.RegisterAdminServiceServer(grpcServer, svc)
 

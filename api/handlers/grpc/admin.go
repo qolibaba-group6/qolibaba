@@ -2,9 +2,11 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"qolibaba/api/pb"
 	"qolibaba/api/service"
+	"qolibaba/config"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -26,9 +28,20 @@ func (s *adminGRPCApi) SayHello(ctx context.Context, req *pb.AdminSayHelloReques
 	return s.svc.SayHello(ctx, req)
 }
 
+type adminGRPCClient struct {
+	cfg config.AdminServiceConfig
+	
+}
 
-func SayHelloClient(ctx context.Context, req *pb.AdminSayHelloRequest) (*pb.AdminSayHelloResponse, error) {
-	client, err := grpc.NewClient(":50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+func NewAdminGRPCClient(cfg config.AdminServiceConfig) pb.AdminServiceClient {
+	return &adminGRPCClient{
+		cfg: cfg,
+	}
+}
+
+func (c *adminGRPCClient) SayHello(ctx context.Context, req *pb.AdminSayHelloRequest, opts ...grpc.CallOption) (*pb.AdminSayHelloResponse, error) {
+	target := fmt.Sprintf(":%d", c.cfg.Port)
+	client, err := grpc.NewClient(target, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal(err)
 	}

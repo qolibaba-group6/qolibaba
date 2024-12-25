@@ -1,15 +1,27 @@
 {
     "db": {
-        "host": "",
-        "port": 8080,
-        "database": "",
-        "user": "",
-        "password": ""
+        "host": "127.0.0.1",
+        "port": 5050,
+        "database": "qolibaba_db",
+        "user": "app",
+        "password": "password123",
+        "schema": "public"
     },
     "server": {
         "httpPort": 8080,
         "secret": "123456@#$",
         "authExpMin": 30,
         "authExpRefreshMin": 180
+    },
+    "redis": {
+        "host": "",
+        "port": 0
+    },
+    "superAdmin": {
+        "email": "admin@example.com",
+        "password": "password123"
+    },
+    "adminService": {
+        "port": 50051
     }
 }

@@ -11,15 +11,15 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func Run(appContainer app.App, cfg config.ServerConfig) error {
+func Run(appContainer app.App, serverCfg config.ServerConfig, adminCfg config.AdminServiceConfig) error {
 	router := fiber.New()
 
 	api := router.Group("/api/v1", setUserContext)
 
-	registerAuthAPI(appContainer, cfg, api)
-	registerAdminAPI(api)
+	registerAuthAPI(appContainer, serverCfg, api)
+	registerAdminAPI(api, adminCfg)
 
-	return router.Listen(fmt.Sprintf(":%d", cfg.HttpPort))
+	return router.Listen(fmt.Sprintf(":%d", serverCfg.HttpPort))
 }
 
 func registerAuthAPI(appContainer app.App, cfg config.ServerConfig, router fiber.Router) {
@@ -35,8 +35,8 @@ func registerAuthAPI(appContainer app.App, cfg config.ServerConfig, router fiber
 }
 
 
-func registerAdminAPI(router fiber.Router) {
+func registerAdminAPI(router fiber.Router, cfg config.AdminServiceConfig) {
 	adminRouter := router.Group("/admin")
 
-	adminRouter.Post("/say-hello", SayHello())
+	adminRouter.Post("/say-hello", SayHello(cfg))
 }

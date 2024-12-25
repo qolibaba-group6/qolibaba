@@ -3,17 +3,20 @@ package service
 import (
 	"context"
 	"qolibaba/api/pb"
+	"qolibaba/config"
 	"qolibaba/internal/admin/port"
 )
 
 
 type AdminService struct {
 	svc port.Service
+	cfg config.AdminServiceConfig
 }
 
-func NewAdminService(svc port.Service) *AdminService {
+func NewAdminService(svc port.Service, cfg config.AdminServiceConfig) *AdminService {
 	return &AdminService{
 		svc: svc,
+		cfg: cfg,
 	}
 }
 

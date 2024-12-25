@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+option go_package = "qolibaba/api/pb";
+
+
+
+message UserSignUpRequest {
+    string firstName = 1 [json_name = "firstName"];
+    string lastName = 2 [json_name = "lastName"];
+    string email = 3 [json_name = "email"];
+    string password = 4 [json_name = "password"];
+}
+
+message UserSignUpResponse {
+    string accessToken = 1 [json_name = "accessToken"];
+    string refreshToken = 2 [json_name = "refreshToken"];
+}
+
+message UserSignInRequest {
+    string email = 1 [json_name = "email"];
+    string password = 2 [json_name = "password"];
+}
+
+message UserSignInResponse {
+    string accessToken = 1 [json_name = "accessToken"];
+    string refreshToken = 2 [json_name = "refreshToken"];
+}

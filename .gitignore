@@ -5,6 +5,9 @@
 *.app
 *.bin
 
+# Dependency directories (remove the comment below to include it)
+vendor/
+
 # Go workspace file
 go.work
 go.work.sum
@@ -59,3 +62,8 @@ ehthumbs.db
 # Ignore other configuration files like local configuration, secrets etc.
 *.local
 *.env.*
+
+# config file
+*config.json
+
+.vscode

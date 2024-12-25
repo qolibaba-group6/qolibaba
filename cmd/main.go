@@ -18,9 +18,9 @@ func main() {
 		*configPath = v
 	}
 
-	c := config.MustReadConfig(*configPath)
+	cfg := config.MustReadConfig(*configPath)
 
-	appContainer := app.NewMustApp(c)
+	appContainer := app.NewMustApp(cfg)
 
-	log.Fatal(http.Run(appContainer, c.Server))
+	log.Fatal(http.Run(appContainer, cfg.Server, cfg.AdminService))
 }

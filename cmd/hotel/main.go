@@ -35,9 +35,10 @@ func main() {
 	hotelService := hotelApp.HotelService()
 	hotelHandler := http.NewHotelHandler(hotelService)
 
-	app.Post("/api/hotels", hotelHandler.RegisterHotelHandler)
-	app.Get("/api/hotels", hotelHandler.GetAllHotelsHandler)
-	app.Get("/api/hotels/:id", hotelHandler.GetHotelByIDHandler)
+	app.Post("/api/upsertHotel", hotelHandler.RegisterHotelHandler)
+	app.Get("/api/getAllHotels", hotelHandler.GetAllHotelsHandler)
+	app.Get("/api/getHotel/:id", hotelHandler.GetHotelByIDHandler)
+	app.Post("/upsertRoom", hotelHandler.CreateOrUpdateRoom)
 
 	log.Printf("Hotel service listening on port %d", cfg.HotelService.Port)
 	if err := app.Listen(fmt.Sprintf(":%d", cfg.HotelService.Port)); err != nil {

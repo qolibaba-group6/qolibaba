@@ -105,3 +105,22 @@ func (h *HotelHandler) DeleteHotelHandler(c *fiber.Ctx) error {
 		"message": "Hotel deleted successfully",
 	})
 }
+
+func (h *HotelHandler) CreateOrUpdateRoom(c *fiber.Ctx) error {
+	var room entity.Room
+
+	if err := c.BodyParser(&room); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": fmt.Sprintf("Invalid request body: %v", err),
+		})
+	}
+
+	createdOrUpdatedRoom, err := h.hotelService.CreateOrUpdateRoom(&room)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": fmt.Sprintf("Failed to create or update room: %v", err),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(createdOrUpdatedRoom)
+}

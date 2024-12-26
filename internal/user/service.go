@@ -33,7 +33,7 @@ func (s *service) Create(ctx context.Context, user domain.User) (domain.UserUUID
 	userID, err := s.repo.Create(ctx, user)
 	if err != nil {
 		// log
-		return domain.NilUserUUID(), err
+		return domain.NilUserUUID(), ErrUserOnCreate
 	}
 
 	return userID, nil

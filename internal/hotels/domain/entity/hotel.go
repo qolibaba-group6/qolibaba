@@ -1,4 +1,4 @@
-package models
+package entity
 
 import (
 	"time"
@@ -37,8 +37,8 @@ type Room struct {
 	Capacity          int       `gorm:"not null" validate:"required,gt=0"`
 	Features          string    `gorm:"type:text"`
 	Duration          string    `gorm:"type:enum('12 hours','24 hours');not null" validate:"required,oneof=12 hours 24 hours"`
-	PublicReleaseDate time.Time `gorm:"not null" validate:"required"` // Public visibility date
-	AgencyReleaseDate time.Time `gorm:"not null" validate:"required"` // Agency-specific visibility date
+	PublicReleaseDate time.Time `gorm:"not null" validate:"required"`
+	AgencyReleaseDate time.Time `gorm:"not null" validate:"required"`
 	Bookings          []Booking `gorm:"constraint:OnDelete:CASCADE"`
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
@@ -46,13 +46,15 @@ type Room struct {
 
 // Booking model
 type Booking struct {
-	ID         uint      `gorm:"primaryKey"`
-	RoomID     uint      `gorm:"not null"`
-	UserID     uint      `gorm:"not null"`
-	StartTime  time.Time `gorm:"not null" validate:"required"`
-	EndTime    time.Time `gorm:"not null" validate:"required,gtfield=StartTime"`
-	TotalPrice float64   `gorm:"type:decimal(10,2);not null" validate:"required,gt=0"`
-	Status     string    `gorm:"type:enum('pending','confirmed','completed');not null" validate:"required,oneof=pending confirmed completed"`
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	ID                 uint       `gorm:"primaryKey"`
+	RoomID             uint       `gorm:"not null"`
+	UserID             uint       `gorm:"not null"`
+	StartTime          time.Time  `gorm:"not null" validate:"required"`
+	EndTime            time.Time  `gorm:"not null" validate:"required,gtfield=StartTime"`
+	TotalPrice         float64    `gorm:"type:decimal(10,2);not null" validate:"required,gt=0"`
+	Status             string     `gorm:"type:enum('pending','confirmed','completed');not null" validate:"required,oneof=pending confirmed completed"`
+	Confirmed          bool       `gorm:"not null" validate:"required"`
+	DateOfConfirmation *time.Time `gorm:"default:null"`
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
 }

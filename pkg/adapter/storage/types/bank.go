@@ -2,11 +2,27 @@ package types
 
 import "time"
 
+// Constants for Wallet Role, Transaction Type, Claim Type, and Status
 const (
 	WalletRoleUser = "user"
 	WalletRoleBank = "bank"
+
+	TransactionTypeDeposit    = "deposit"
+	TransactionTypeWithdrawal = "withdrawal"
+	TransactionTypePayment    = "payment"
+	TransactionTypeRefund     = "refund"
+
+	ClaimTypeHotel     = "hotel"
+	ClaimTypeFlight    = "flight"
+	ClaimTypeTransport = "transport"
+	ClaimTypeOther     = "other"
+
+	StatusPending   = "pending"
+	StatusCompleted = "completed"
+	StatusFailed    = "failed"
 )
 
+// Wallet Model
 type Wallet struct {
 	ID           uint          `gorm:"primaryKey"`
 	UserID       *uint         `gorm:"uniqueIndex;not null"`
@@ -18,6 +34,7 @@ type Wallet struct {
 	UpdatedAt    time.Time
 }
 
+// Transaction Model
 type Transaction struct {
 	ID              uint    `gorm:"primaryKey"`
 	WalletID        uint    `gorm:"not null"`
@@ -33,17 +50,20 @@ type Transaction struct {
 	Claims []Claim `gorm:"foreignKey:TransactionID"`
 }
 
+// Claim Model
 type Claim struct {
-	ID           uint    `gorm:"primaryKey"`
-	UserID       uint    `gorm:"not null"`
-	Amount       float64 `gorm:"type:decimal(15,2);not null"`
-	ClaimType    string  `gorm:"type:enum('hotel', 'flight', 'transport', 'other');not null"`
-	ClaimDetails string  `gorm:"type:text"`
-	ServiceID    uint    `gorm:"not null"`
-	ServiceType  string  `gorm:"type:enum('hotel', 'flight', 'transport');not null"`
-	Status       string  `gorm:"type:enum('pending', 'paid', 'failed');not null"`
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	CompletedAt  *time.Time  `gorm:"default:null"`
-	Transaction  Transaction `gorm:"foreignKey:TransactionID"`
+	ID            uint    `gorm:"primaryKey"`
+	TransactionID uint    `gorm:"not null"`
+	UserID        uint    `gorm:"not null"`
+	Amount        float64 `gorm:"type:decimal(15,2);not null"`
+	ClaimType     string  `gorm:"type:enum('hotel', 'flight', 'transport', 'other');not null"`
+	ClaimDetails  string  `gorm:"type:text"`
+	ServiceID     uint    `gorm:"not null"`
+	ServiceType   string  `gorm:"type:enum('hotel', 'flight', 'transport');not null"`
+	Status        string  `gorm:"type:enum('pending', 'paid', 'failed');not null"`
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	CompletedAt   *time.Time `gorm:"default:null"`
+
+	Transaction Transaction `gorm:"foreignKey:TransactionID"`
 }

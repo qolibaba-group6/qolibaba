@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"net/http"
-	"qolibaba/internal/hotels/domain/entity"
 	"qolibaba/internal/hotels/port"
+	"qolibaba/pkg/adapter/storage/types"
+	"strconv"
 )
 
 type HotelHandler struct {
@@ -19,7 +20,7 @@ func NewHotelHandler(hotelService port.Service) *HotelHandler {
 }
 
 func (h *HotelHandler) RegisterHotelHandler(c *fiber.Ctx) error {
-	var hotel entity.Hotel
+	var hotel types.Hotel
 
 	if err := c.BodyParser(&hotel); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
@@ -107,7 +108,7 @@ func (h *HotelHandler) DeleteHotelHandler(c *fiber.Ctx) error {
 }
 
 func (h *HotelHandler) CreateOrUpdateRoom(c *fiber.Ctx) error {
-	var room entity.Room
+	var room types.Room
 
 	if err := c.BodyParser(&room); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -123,4 +124,68 @@ func (h *HotelHandler) CreateOrUpdateRoom(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(createdOrUpdatedRoom)
+}
+
+// GetRoomByID handles the request to get a room by its ID.
+func (h *HotelHandler) GetRoomByID(c *fiber.Ctx) error {
+	id := c.Params("id")
+	roomID, err := strconv.Atoi(id)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": fmt.Sprintf("invalid room ID: %v", err),
+		})
+	}
+
+	room, err := h.hotelService.GetRoomByID(uint(roomID))
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": fmt.Sprintf("room not found: %v", err),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(room)
+}
+
+// GetRoomsByHotelID handles the request to get all rooms by hotel ID.
+func (h *HotelHandler) GetRoomsByHotelID(c *fiber.Ctx) error {
+	hotelID := c.Params("hotel_id")
+
+	hotelIDUint, err := strconv.Atoi(hotelID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": fmt.Sprintf("invalid hotel ID: %v", err),
+		})
+	}
+
+	rooms, err := h.hotelService.GetRoomsByHotelID(uint(hotelIDUint))
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": fmt.Sprintf("rooms not found for hotel %d: %v", hotelIDUint, err),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(rooms)
+}
+
+// DeleteRoom handles the request to delete a room by its ID.
+func (h *HotelHandler) DeleteRoom(c *fiber.Ctx) error {
+	id := c.Params("id")
+
+	roomID, err := strconv.Atoi(id)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": fmt.Sprintf("invalid room ID: %v", err),
+		})
+	}
+
+	err = h.hotelService.DeleteRoom(uint(roomID))
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": fmt.Sprintf("failed to delete room: %v", err),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "room deleted successfully",
+	})
 }

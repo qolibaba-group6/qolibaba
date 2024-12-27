@@ -3,8 +3,8 @@ package hotels
 import (
 	"fmt"
 	"github.com/go-playground/validator/v10"
-	"qolibaba/internal/hotels/domain/entity"
 	"qolibaba/internal/hotels/port"
+	"qolibaba/pkg/adapter/storage/types"
 	"regexp"
 )
 
@@ -20,7 +20,7 @@ func NewService(repo port.Repo) port.Service {
 	}
 }
 
-func (s *service) RegisterHotel(hotel *entity.Hotel) (*entity.Hotel, error) {
+func (s *service) RegisterHotel(hotel *types.Hotel) (*types.Hotel, error) {
 	if err := s.validate.Struct(hotel); err != nil {
 		return nil, fmt.Errorf("validation failed: %v", err)
 	}
@@ -41,7 +41,7 @@ func (s *service) RegisterHotel(hotel *entity.Hotel) (*entity.Hotel, error) {
 	return createdOrUpdatedHotel, nil
 }
 
-func (s *service) GetHotelByID(hotelID string) (*entity.Hotel, error) {
+func (s *service) GetHotelByID(hotelID string) (*types.Hotel, error) {
 	hotel, err := s.hotelRepo.GetHotelByID(hotelID)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching hotel by ID: %v", err)
@@ -54,7 +54,7 @@ func (s *service) GetHotelByID(hotelID string) (*entity.Hotel, error) {
 	return hotel, nil
 }
 
-func (s *service) GetAllHotels() ([]entity.Hotel, error) {
+func (s *service) GetAllHotels() ([]types.Hotel, error) {
 	hotels, err := s.hotelRepo.GetAllHotels()
 	if err != nil {
 		return nil, fmt.Errorf("error fetching all hotels: %v", err)
@@ -71,7 +71,7 @@ func (s *service) DeleteHotel(id string) error {
 }
 
 // CreateOrUpdateRoom creates a new room or updates an existing one.
-func (s *service) CreateOrUpdateRoom(room *entity.Room) (*entity.Room, error) {
+func (s *service) CreateOrUpdateRoom(room *types.Room) (*types.Room, error) {
 	if err := s.validate.Struct(room); err != nil {
 		return nil, fmt.Errorf("validation failed: %v", err)
 	}
@@ -89,6 +89,33 @@ func (s *service) CreateOrUpdateRoom(room *entity.Room) (*entity.Room, error) {
 	}
 
 	return createdOrUpdatedRoom, nil
+}
+
+// GetRoomByID fetches a room by its ID.
+func (s *service) GetRoomByID(id uint) (*types.Room, error) {
+	room, err := s.hotelRepo.GetRoomByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get room: %v", err)
+	}
+	return room, nil
+}
+
+// GetRoomsByHotelID fetches all rooms for a given hotel by its ID.
+func (s *service) GetRoomsByHotelID(hotelID uint) ([]types.Room, error) {
+	rooms, err := s.hotelRepo.GetRoomsByHotelID(hotelID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get rooms for hotel %d: %v", hotelID, err)
+	}
+	return rooms, nil
+}
+
+// DeleteRoom deletes a room by its ID.
+func (s *service) DeleteRoom(id uint) error {
+	err := s.hotelRepo.DeleteRoom(id)
+	if err != nil {
+		return fmt.Errorf("failed to delete room: %v", err)
+	}
+	return nil
 }
 
 func validatePhoneNumber(phone string) error {

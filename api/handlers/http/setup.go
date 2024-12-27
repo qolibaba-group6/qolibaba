@@ -18,6 +18,7 @@ func Run(appContainer app.App, serverCfg config.ServerConfig, adminCfg config.Ad
 
 	registerAuthAPI(appContainer, serverCfg, api)
 	registerAdminAPI(api, adminCfg)
+	registerHotelAPI(appContainer, api)
 
 	return router.Listen(fmt.Sprintf(":%d", serverCfg.HttpPort))
 }
@@ -35,6 +36,16 @@ func registerAuthAPI(appContainer app.App, cfg config.ServerConfig, router fiber
 	// router.Get("/test", newAuthMiddleware([]byte(cfg.Secret)), TestHandler)
 }
 
+func registerHotelAPI(appContainer app.App, router fiber.Router) {
+	//fix it.
+	hotelService := appContainer.HotelService()
+
+	hotelHandler := NewHotelHandler(hotelService)
+	router.Post("/hotels", hotelHandler.RegisterHotelHandler)
+	router.Get("/hotels", hotelHandler.GetAllHotelsHandler)
+	router.Get("/hotels/:id", hotelHandler.GetHotelByIDHandler)
+	router.Post("/rooms", hotelHandler.CreateOrUpdateRoom)
+}
 
 func registerAdminAPI(router fiber.Router, cfg config.AdminServiceConfig) {
 	adminRouter := router.Group("/admin")

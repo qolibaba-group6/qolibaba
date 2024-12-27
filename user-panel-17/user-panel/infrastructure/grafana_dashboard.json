@@ -1,0 +1,28 @@
+
+{
+  "dashboard": {
+    "title": "Golang Services Monitoring",
+    "panels": [
+      {
+        "type": "graph",
+        "title": "HTTP Requests per Second",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[1m])",
+            "legendFormat": "{{method}} {{path}}"
+          }
+        ]
+      },
+      {
+        "type": "graph",
+        "title": "Memory Usage",
+        "targets": [
+          {
+            "expr": "go_memstats_alloc_bytes",
+            "legendFormat": "Memory Usage"
+          }
+        ]
+      }
+    ]
+  }
+}

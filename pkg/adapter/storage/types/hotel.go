@@ -1,4 +1,4 @@
-package entity
+package types
 
 import (
 	"time"
@@ -55,6 +55,8 @@ type Booking struct {
 	Status             string     `gorm:"type:enum('pending','confirmed','completed');not null" validate:"required,oneof=pending confirmed completed"`
 	Confirmed          bool       `gorm:"not null" validate:"required"`
 	DateOfConfirmation *time.Time `gorm:"default:null"`
+	IsReferred         *uint      `gorm:"type:bigint;default:null"`
+	DeletedAt          *time.Time `gorm:"index"`
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
 }

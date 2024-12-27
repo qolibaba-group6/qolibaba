@@ -133,3 +133,83 @@ func (r *hotelRepo) DeleteRoom(id uint) error {
 	}
 	return nil
 }
+
+// CreateBooking creates a new booking in the system.
+func (r *hotelRepo) CreateBooking(booking *types.Booking) (*types.Booking, error) {
+	if booking.StartTime.After(booking.EndTime) {
+		return nil, fmt.Errorf("start time must be before end time")
+	}
+
+	if err := r.db.Create(booking).Error; err != nil {
+		return nil, fmt.Errorf("error creating booking: %v", err)
+	}
+
+	return booking, nil
+}
+
+// UpdateBooking updates an existing booking.
+func (r *hotelRepo) UpdateBooking(booking *types.Booking) (*types.Booking, error) {
+	var existingBooking types.Booking
+	if err := r.db.First(&existingBooking, booking.ID).Error; err != nil {
+		return nil, fmt.Errorf("error finding booking: %v", err)
+	}
+
+	if err := r.db.Save(booking).Error; err != nil {
+		return nil, fmt.Errorf("error updating booking: %v", err)
+	}
+
+	return booking, nil
+}
+
+// SoftDeleteBooking soft deletes a booking by setting the DeletedAt field.
+func (r *hotelRepo) SoftDeleteBooking(id uint) error {
+	var booking types.Booking
+	if err := r.db.First(&booking, id).Error; err != nil {
+		return fmt.Errorf("booking not found: %v", err)
+	}
+
+	now := time.Now()
+	booking.DeletedAt = &now
+	if err := r.db.Save(&booking).Error; err != nil {
+		return fmt.Errorf("error deleting booking: %v", err)
+	}
+
+	return nil
+}
+
+// GetBookingByID retrieves a booking by its ID.
+func (r *hotelRepo) GetBookingByID(id uint) (*types.Booking, error) {
+	var booking types.Booking
+	if err := r.db.First(&booking, id).Error; err != nil {
+		return nil, fmt.Errorf("error finding booking: %v", err)
+	}
+	return &booking, nil
+}
+
+// GetBookingsByUserID retrieves all bookings for a given user ID.
+func (r *hotelRepo) GetBookingsByUserID(userID uint) ([]types.Booking, error) {
+	var bookings []types.Booking
+	if err := r.db.Where("user_id = ?", userID).Find(&bookings).Error; err != nil {
+		return nil, fmt.Errorf("error fetching bookings for user %d: %v", userID, err)
+	}
+	return bookings, nil
+}
+
+func (r *hotelRepo) ConfirmBooking(bookingID uint) (*types.Booking, error) {
+	var booking types.Booking
+	if err := r.db.First(&booking, bookingID).Error; err != nil {
+		return nil, fmt.Errorf("error fetching booking with ID %d: %v", bookingID, err)
+	}
+	if booking.Status != types.BookingStatusCompleted {
+		return nil, fmt.Errorf("booking is not completed, cannot confirm")
+	}
+	booking.Confirmed = true
+	confirmedAt := time.Now()
+	booking.DateOfConfirmation = &confirmedAt
+
+	if err := r.db.Save(&booking).Error; err != nil {
+		return nil, fmt.Errorf("error confirming booking with ID %d: %v", bookingID, err)
+	}
+
+	return &booking, nil
+}

@@ -189,3 +189,103 @@ func (h *HotelHandler) DeleteRoom(c *fiber.Ctx) error {
 		"message": "room deleted successfully",
 	})
 }
+
+// CreateBooking handles booking creation
+func (h *HotelHandler) CreateBooking(c *fiber.Ctx) error {
+	var booking types.Booking
+	if err := c.BodyParser(&booking); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"error": fmt.Sprintf("Invalid request body: %v", err),
+		})
+	}
+	createdBooking, err := h.hotelService.CreateBooking(&booking)
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"error": fmt.Sprintf("Error creating booking: %v", err),
+		})
+	}
+
+	return c.Status(http.StatusCreated).JSON(createdBooking)
+}
+
+// GetBookingByID handles fetching a booking by ID
+func (h *HotelHandler) GetBookingByID(c *fiber.Ctx) error {
+	id := c.Params("id")
+	bookingID, err := strconv.ParseUint(id, 10, 32)
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid booking ID format",
+		})
+	}
+
+	booking, err := h.hotelService.GetBookingByID(uint(bookingID))
+	if err != nil {
+		return c.Status(http.StatusNotFound).JSON(fiber.Map{
+			"error": fmt.Sprintf("Booking not found: %v", err),
+		})
+	}
+	return c.JSON(booking)
+}
+
+// GetBookingsByUserID handles fetching all bookings for a given user
+func (h *HotelHandler) GetBookingsByUserID(c *fiber.Ctx) error {
+	userID := c.Params("user_id")
+	userIDUint, err := strconv.ParseUint(userID, 10, 32)
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid user ID format",
+		})
+	}
+
+	bookings, err := h.hotelService.GetBookingsByUserID(uint(userIDUint))
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"error": fmt.Sprintf("Error fetching bookings for user: %v", err),
+		})
+	}
+
+	return c.JSON(bookings)
+}
+
+// SoftDeleteBooking handles soft deleting a booking
+func (h *HotelHandler) SoftDeleteBooking(c *fiber.Ctx) error {
+	id := c.Params("id")
+	bookingID, err := strconv.ParseUint(id, 10, 32)
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid booking ID format",
+		})
+	}
+	err = h.hotelService.SoftDeleteBooking(uint(bookingID))
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"error": fmt.Sprintf("Error deleting booking: %v", err),
+		})
+	}
+
+	return c.SendStatus(http.StatusNoContent)
+}
+
+// ConfirmBooking handles confirming a completed booking
+func (h *HotelHandler) ConfirmBooking(c *fiber.Ctx) error {
+	// Get booking ID from the URL
+	id := c.Params("id")
+
+	// Convert id to uint
+	bookingID, err := strconv.ParseUint(id, 10, 32)
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid booking ID format",
+		})
+	}
+
+	// Call the booking service to confirm the booking
+	confirmedBooking, err := h.hotelService.ConfirmBooking(uint(bookingID))
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"error": fmt.Sprintf("Error confirming booking: %v", err),
+		})
+	}
+
+	return c.JSON(confirmedBooking)
+}

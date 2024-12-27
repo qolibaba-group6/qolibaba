@@ -16,4 +16,12 @@ type Repo interface {
 	GetRoomByID(id uint) (*types.Room, error)
 	GetRoomsByHotelID(hotelID uint) ([]types.Room, error)
 	DeleteRoom(id uint) error
+
+	// Booking repository interfaces
+	CreateBooking(booking *types.Booking) (*types.Booking, error)
+	UpdateBooking(booking *types.Booking) (*types.Booking, error)
+	SoftDeleteBooking(id uint) error
+	GetBookingByID(id uint) (*types.Booking, error)
+	GetBookingsByUserID(userID uint) ([]types.Booking, error)
+	ConfirmBooking(bookingID uint) (*types.Booking, error)
 }

@@ -118,10 +118,89 @@ func (s *service) DeleteRoom(id uint) error {
 	return nil
 }
 
+// CreateBooking creates a new booking for a user (either general user or referred by a travel agency).
+func (s *service) CreateBooking(booking *types.Booking) (*types.Booking, error) {
+
+	//TODO calculate the total price...
+	//TODO handle the status.
+	if err := s.validate.Struct(booking); err != nil {
+		return nil, fmt.Errorf("validation failed: %v", err)
+	}
+
+	if booking.StartTime.After(booking.EndTime) {
+		return nil, fmt.Errorf("start time must be before end time")
+	}
+
+	if booking.IsReferred != nil && *booking.IsReferred == 0 {
+		booking.IsReferred = nil
+	}
+
+	newBooking, err := s.hotelRepo.CreateBooking(booking)
+	if err != nil {
+		return nil, fmt.Errorf("error creating booking: %v", err)
+	}
+
+	return newBooking, nil
+}
+
+// UpdateBooking updates an existing booking.
+func (s *service) UpdateBooking(booking *types.Booking) (*types.Booking, error) {
+
+	//TODO calculate the total price...
+	//TODO handle the status.
+	if err := s.validate.Struct(booking); err != nil {
+		return nil, fmt.Errorf("validation failed: %v", err)
+	}
+	updatedBooking, err := s.hotelRepo.UpdateBooking(booking)
+	if err != nil {
+		return nil, fmt.Errorf("error updating booking: %v", err)
+	}
+
+	return updatedBooking, nil
+}
+
+// SoftDeleteBooking soft deletes a booking (marks it as deleted).
+func (s *service) SoftDeleteBooking(id uint) error {
+	if err := s.hotelRepo.SoftDeleteBooking(id); err != nil {
+		return fmt.Errorf("error deleting booking: %v", err)
+	}
+
+	return nil
+}
+
+// GetBookingByID retrieves a booking by its ID.
+func (s *service) GetBookingByID(id uint) (*types.Booking, error) {
+	booking, err := s.hotelRepo.GetBookingByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching booking: %v", err)
+	}
+
+	return booking, nil
+}
+
+// GetBookingsByUserID retrieves all bookings for a given user ID.
+func (s *service) GetBookingsByUserID(userID uint) ([]types.Booking, error) {
+	bookings, err := s.hotelRepo.GetBookingsByUserID(userID)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching bookings for user %d: %v", userID, err)
+	}
+
+	return bookings, nil
+}
+
+// ConfirmBooking confirms a booking once it has ended
+func (s *service) ConfirmBooking(bookingID uint) (*types.Booking, error) {
+	booking, err := s.hotelRepo.ConfirmBooking(bookingID)
+	if err != nil {
+		return nil, fmt.Errorf("error confirming booking: %v", err)
+	}
+	return booking, nil
+}
+
 func validatePhoneNumber(phone string) error {
 	re := regexp.MustCompile(`^\+98\d{10}$`)
 	if !re.MatchString(phone) {
-		return fmt.Errorf("invalid phone number format, must be E164 (e.g., +1234567890)")
+		return fmt.Errorf("invalid phone number format, must be E164 (e.g., +989138272072)")
 	}
 	return nil
 }

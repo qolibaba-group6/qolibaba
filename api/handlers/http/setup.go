@@ -37,7 +37,7 @@ func registerAuthAPI(appContainer app.App, cfg config.ServerConfig, router fiber
 }
 
 func registerHotelAPI(appContainer app.App, router fiber.Router) {
-	//fix it.
+	//fix it. add the other routes.
 	hotelService := appContainer.HotelService()
 
 	hotelHandler := NewHotelHandler(hotelService)

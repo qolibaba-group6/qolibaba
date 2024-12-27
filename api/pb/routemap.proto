@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option go_package = "qolibaba/api/pb";
+
+message TerminalCreateRequest {
+    string name = 1;
+    uint32 terminalType = 2;
+    string country = 3;
+    string state = 4;
+    string city = 5;
+}
+
+message TerminalCreateResponse {
+    string terminalID = 1;
+}
+
+service RoutemapService {
+    rpc CreateTerminal(TerminalCreateRequest) returns (TerminalCreateResponse);
+}

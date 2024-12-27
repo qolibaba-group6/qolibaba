@@ -8,15 +8,15 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func SayHello(cfg config.AdminServiceConfig) fiber.Handler {
+func CreateTerminal(cfg config.RoutemapServiceConfig) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		var req pb.AdminSayHelloRequest
+		var req pb.TerminalCreateRequest
 		if err := c.BodyParser(&req); err != nil {
 			return fiber.ErrBadRequest
 		}
 
-		grpcClient := grpc.NewAdminGRPCClient(cfg)
-		resp, err := grpcClient.SayHello(c.UserContext(), &req)
+		grpcClient := grpc.NewRoutemapGRPCClient(cfg)
+		resp, err := grpcClient.CreateTerminal(c.UserContext(), &req)
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		}

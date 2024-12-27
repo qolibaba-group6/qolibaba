@@ -2,11 +2,11 @@ package http
 
 import (
 	"qolibaba/pkg/context"
-	"qolibaba/pkg/logger"
 	"qolibaba/pkg/jwt"
+	"qolibaba/pkg/logger"
 
-	"github.com/gofiber/fiber/v2"
 	jwtware "github.com/gofiber/contrib/jwt"
+	"github.com/gofiber/fiber/v2"
 )
 
 func newAuthMiddleware(secret []byte) fiber.Handler {
@@ -35,4 +35,17 @@ func newAuthMiddleware(secret []byte) fiber.Handler {
 func setUserContext(c *fiber.Ctx) error {
 	c.SetUserContext(context.NewAppContext(c.UserContext(), context.WithLogger(logger.NewLogger())))
 	return c.Next()
+}
+
+func adminAccessMiddleware(ctx *fiber.Ctx) error {
+	userClaims := userClaims(ctx)
+	if userClaims == nil {
+		return fiber.ErrUnauthorized
+	}
+
+	if !userClaims.IsAdmin {
+		return fiber.NewError(fiber.StatusForbidden, "Access denied: admin privileges required")
+	}
+
+	return ctx.Next()
 }

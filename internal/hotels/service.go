@@ -119,15 +119,19 @@ func (s *service) DeleteRoom(id uint) error {
 }
 
 // CreateBooking creates a new booking for a user (either general user or referred by a travel agency).
+// In your service function:
 func (s *service) CreateBooking(booking *types.Booking) (*types.Booking, error) {
-	//TODO handle the status.
-	if err := s.validate.Struct(booking); err != nil {
-		return nil, fmt.Errorf("validation failed: %v", err)
+	room, err := s.hotelRepo.GetRoomByID(booking.RoomID)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching room details: %v", err)
 	}
-
 	if booking.StartTime.After(booking.EndTime) {
 		return nil, fmt.Errorf("start time must be before end time")
 	}
+
+	totalPrice := room.Price * float64(booking.EndTime.Sub(booking.StartTime).Hours()/24) // Assuming daily pricing
+
+	booking.TotalPrice = &totalPrice
 
 	if booking.IsReferred != nil && *booking.IsReferred == 0 {
 		booking.IsReferred = nil
@@ -143,7 +147,6 @@ func (s *service) CreateBooking(booking *types.Booking) (*types.Booking, error) 
 
 // UpdateBooking updates an existing booking.
 func (s *service) UpdateBooking(booking *types.Booking) (*types.Booking, error) {
-	//TODO handle the status.
 	if err := s.validate.Struct(booking); err != nil {
 		return nil, fmt.Errorf("validation failed: %v", err)
 	}

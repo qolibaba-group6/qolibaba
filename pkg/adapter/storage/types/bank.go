@@ -1,6 +1,9 @@
 package types
 
-import "time"
+import (
+	"gorm.io/gorm"
+	"time"
+)
 
 // Constants for Wallet Role, Transaction Type, Claim Type, and Status
 const (
@@ -24,46 +27,40 @@ const (
 
 // Wallet Model
 type Wallet struct {
-	ID           uint          `gorm:"primaryKey"`
-	UserID       *uint         `gorm:"uniqueIndex;not null"`
-	CardNumber   string        `gorm:"type:varchar(16);not null;unique"`
-	Balance      float64       `gorm:"type:decimal(15,2);default:0.00"`
-	Role         string        `gorm:"type:enum('user', 'bank');not null"`
-	Transactions []Transaction `gorm:"foreignKey:WalletID"`
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	gorm.Model
+	UserID       *uint         `gorm:"uniqueIndex;not null" json:"user_id"`
+	CardNumber   string        `gorm:"type:varchar(16);not null;unique" json:"card_number"`
+	Balance      float64       `gorm:"type:decimal(15,2);default:0.00" json:"balance"`
+	Role         string        `gorm:"type:enum('user', 'bank');not null" json:"role"`
+	Transactions []Transaction `gorm:"foreignKey:WalletID" json:"transactions"`
 }
 
 // Transaction Model
 type Transaction struct {
-	ID              uint    `gorm:"primaryKey"`
-	WalletID        uint    `gorm:"not null"`
-	Amount          float64 `gorm:"type:decimal(15,2);not null"`
-	TransactionType string  `gorm:"type:enum('deposit', 'withdrawal', 'payment', 'refund');not null"`
-	Status          string  `gorm:"type:enum('pending', 'completed', 'failed');not null"`
-	Description     string  `gorm:"type:text"`
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	CompletedAt     *time.Time `gorm:"default:null"`
+	gorm.Model
+	WalletID        uint       `gorm:"not null" json:"wallet_id"`
+	Amount          float64    `gorm:"type:decimal(15,2);not null" json:"amount"`
+	TransactionType string     `gorm:"type:enum('deposit', 'withdrawal', 'payment', 'refund');not null" json:"transaction_type"`
+	Status          string     `gorm:"type:enum('pending', 'completed', 'failed');not null" json:"status"`
+	Description     string     `gorm:"type:text" json:"description"`
+	CompletedAt     *time.Time `gorm:"default:null" json:"completed_at"`
 
-	Wallet Wallet  `gorm:"foreignKey:WalletID"`
-	Claims []Claim `gorm:"foreignKey:TransactionID"`
+	Wallet Wallet  `gorm:"foreignKey:WalletID" json:"wallet"`
+	Claims []Claim `gorm:"foreignKey:TransactionID" json:"claims"`
 }
 
 // Claim Model
 type Claim struct {
-	ID            uint    `gorm:"primaryKey"`
-	TransactionID uint    `gorm:"not null"`
-	UserID        uint    `gorm:"not null"`
-	Amount        float64 `gorm:"type:decimal(15,2);not null"`
-	ClaimType     string  `gorm:"type:enum('hotel', 'flight', 'transport', 'other');not null"`
-	ClaimDetails  string  `gorm:"type:text"`
-	ServiceID     uint    `gorm:"not null"`
-	ServiceType   string  `gorm:"type:enum('hotel', 'flight', 'transport');not null"`
-	Status        string  `gorm:"type:enum('pending', 'paid', 'failed');not null"`
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-	CompletedAt   *time.Time `gorm:"default:null"`
+	gorm.Model
+	TransactionID uint       `gorm:"not null" json:"transaction_id"`
+	UserID        uint       `gorm:"not null" json:"user_id"`
+	Amount        float64    `gorm:"type:decimal(15,2);not null" json:"amount"`
+	ClaimType     string     `gorm:"type:enum('hotel', 'flight', 'transport', 'other');not null" json:"claim_type"`
+	ClaimDetails  string     `gorm:"type:text" json:"claim_details"`
+	ServiceID     uint       `gorm:"not null" json:"service_id"`
+	ServiceType   string     `gorm:"type:enum('hotel', 'flight', 'transport');not null" json:"service_type"`
+	Status        string     `gorm:"type:enum('pending', 'paid', 'failed');not null" json:"status"`
+	CompletedAt   *time.Time `gorm:"default:null" json:"completed_at"`
 
-	Transaction Transaction `gorm:"foreignKey:TransactionID"`
+	Transaction Transaction `gorm:"foreignKey:TransactionID" json:"transaction"`
 }

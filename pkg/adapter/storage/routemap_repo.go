@@ -28,7 +28,8 @@ func (r *routemapRepo) CreateTerminal(ctx context.Context, terminal routemapDoma
 }
 
 func (r *routemapRepo) CreateRoute(ctx context.Context, route routemapDomain.Route) (routemapDomain.RouteUUID, error) {
-	panic("not implemented")
+	Route := mapper.RouteDomain2Storage(route)
+	return Route.ID, r.db.WithContext(ctx).Table("routes").Create(Route).Error
 }
 
 func (r *routemapRepo) GetTerminalByID(ctx context.Context, id routemapDomain.TerminalUUID) (*routemapDomain.Terminal, error) {
@@ -49,13 +50,26 @@ func (r *routemapRepo) GetTerminalByID(ctx context.Context, id routemapDomain.Te
 }
 
 func (r *routemapRepo) GetRouteByID(ctx context.Context, id routemapDomain.RouteUUID) (*routemapDomain.Route, error) {
-	panic("not implemented")
+	var route types.Route
+
+	q := r.db.Table("routes").Debug().WithContext(ctx)
+
+	err := q.Where("id = ?", id).First(&route).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	if route.ID == uuid.Nil {
+		return nil, nil
+	}
+
+	return mapper.RouteStorage2Domain(route), nil
 }
 
 func (r *routemapRepo) GetTerminal(ctx context.Context, filter routemapDomain.TerminalFilter) ([]routemapDomain.Terminal, error) {
-	panic("not implemented")
+	panic("unimplemented")
 }
 
 func (r *routemapRepo) GetRoute(ctx context.Context, filter routemapDomain.RouteFilter) ([]routemapDomain.Route, error) {
-	panic("not implemented")
+	panic("unimplemented")
 }

@@ -18,6 +18,7 @@ func Run(appContainer app.App, cfg config.Config) error {
 
 	registerAuthAPI(appContainer, cfg.Server, api)
 	registerAdminAPI(api, cfg)
+	registerRoutemapAPI(api, cfg)
 
 	return router.Listen(fmt.Sprintf(":%d", cfg.Server.HttpPort))
 }
@@ -30,14 +31,19 @@ func registerAuthAPI(appContainer app.App, cfg config.ServerConfig, router fiber
 	router.Get("/test", newAuthMiddleware([]byte(cfg.Secret)), TestHandler)
 }
 
-
 func registerAdminAPI(router fiber.Router, cfg config.Config) {
 	adminRouter := router.Group("/admin")
 
 	adminRouter.Post("/say-hello", SayHello(cfg.AdminService))
-	adminRouter.Post("/terminal", 
-		newAuthMiddleware([]byte(cfg.Server.Secret)), 
-		adminAccessMiddleware, 
+	adminRouter.Post("/terminal",
+		newAuthMiddleware([]byte(cfg.Server.Secret)),
+		adminAccessMiddleware,
 		CreateTerminal(cfg.RoutemapService),
 	)
+}
+
+func registerRoutemapAPI(router fiber.Router, cfg config.Config) {
+	routemapRouter := router.Group("/routemap")
+
+	routemapRouter.Get("/terminal", newAuthMiddleware([]byte(cfg.Server.Secret)), GetTerminal(cfg.RoutemapService))
 }

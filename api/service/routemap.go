@@ -63,3 +63,35 @@ func (s *RoutemapService) GetTErminalByID(ctx context.Context, req *pb.TerminalG
 		City:         terminal.City,
 	}, nil
 }
+
+func (s *RoutemapService) CreateRoute(ctx context.Context, req *pb.CreateRouteRequest) (*pb.CreateRouteResponse, error) {
+	sourceId, err := uuid.Parse(req.RouteItem.Source.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	destinationId, err := uuid.Parse(req.RouteItem.Destination.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	id, err := s.svc.CreateRoute(ctx, domain.Route{
+		Source: domain.Terminal{
+			ID: sourceId,
+		},
+		Destination: domain.Terminal{
+			ID: destinationId,
+		},
+		RouteNumber:   uint(req.RouteItem.RouteNumber),
+		TransportType: domain.TransportType(req.RouteItem.TransportType),
+		Distance:      float64(req.RouteItem.Distance),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.CreateRouteResponse{
+		Id: id.String(),
+	}, nil
+}

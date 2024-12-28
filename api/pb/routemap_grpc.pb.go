@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	RoutemapService_CreateTerminal_FullMethodName = "/RoutemapService/CreateTerminal"
 	RoutemapService_GetTerminal_FullMethodName    = "/RoutemapService/GetTerminal"
+	RoutemapService_CreateRoute_FullMethodName    = "/RoutemapService/CreateRoute"
 )
 
 // RoutemapServiceClient is the client API for RoutemapService service.
@@ -29,6 +30,7 @@ const (
 type RoutemapServiceClient interface {
 	CreateTerminal(ctx context.Context, in *TerminalCreateRequest, opts ...grpc.CallOption) (*TerminalCreateResponse, error)
 	GetTerminal(ctx context.Context, in *TerminalGetByIDRequest, opts ...grpc.CallOption) (*Terminal, error)
+	CreateRoute(ctx context.Context, in *CreateRouteRequest, opts ...grpc.CallOption) (*CreateRouteResponse, error)
 }
 
 type routemapServiceClient struct {
@@ -59,12 +61,23 @@ func (c *routemapServiceClient) GetTerminal(ctx context.Context, in *TerminalGet
 	return out, nil
 }
 
+func (c *routemapServiceClient) CreateRoute(ctx context.Context, in *CreateRouteRequest, opts ...grpc.CallOption) (*CreateRouteResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateRouteResponse)
+	err := c.cc.Invoke(ctx, RoutemapService_CreateRoute_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RoutemapServiceServer is the server API for RoutemapService service.
 // All implementations must embed UnimplementedRoutemapServiceServer
 // for forward compatibility.
 type RoutemapServiceServer interface {
 	CreateTerminal(context.Context, *TerminalCreateRequest) (*TerminalCreateResponse, error)
 	GetTerminal(context.Context, *TerminalGetByIDRequest) (*Terminal, error)
+	CreateRoute(context.Context, *CreateRouteRequest) (*CreateRouteResponse, error)
 	mustEmbedUnimplementedRoutemapServiceServer()
 }
 
@@ -80,6 +93,9 @@ func (UnimplementedRoutemapServiceServer) CreateTerminal(context.Context, *Termi
 }
 func (UnimplementedRoutemapServiceServer) GetTerminal(context.Context, *TerminalGetByIDRequest) (*Terminal, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTerminal not implemented")
+}
+func (UnimplementedRoutemapServiceServer) CreateRoute(context.Context, *CreateRouteRequest) (*CreateRouteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateRoute not implemented")
 }
 func (UnimplementedRoutemapServiceServer) mustEmbedUnimplementedRoutemapServiceServer() {}
 func (UnimplementedRoutemapServiceServer) testEmbeddedByValue()                         {}
@@ -138,6 +154,24 @@ func _RoutemapService_GetTerminal_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RoutemapService_CreateRoute_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateRouteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RoutemapServiceServer).CreateRoute(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RoutemapService_CreateRoute_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RoutemapServiceServer).CreateRoute(ctx, req.(*CreateRouteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RoutemapService_ServiceDesc is the grpc.ServiceDesc for RoutemapService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,6 +186,10 @@ var RoutemapService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetTerminal",
 			Handler:    _RoutemapService_GetTerminal_Handler,
+		},
+		{
+			MethodName: "CreateRoute",
+			Handler:    _RoutemapService_CreateRoute_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

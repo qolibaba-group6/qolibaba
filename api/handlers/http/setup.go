@@ -40,6 +40,7 @@ func registerAdminAPI(router fiber.Router, cfg config.Config) {
 		adminAccessMiddleware,
 		CreateTerminal(cfg.RoutemapService),
 	)
+	adminRouter.Post("/route", CreateRoute(cfg))
 }
 
 func registerRoutemapAPI(router fiber.Router, cfg config.Config) {

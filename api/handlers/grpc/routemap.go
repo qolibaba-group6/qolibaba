@@ -30,6 +30,10 @@ func (s *routemapGRPCApi) GetTerminal(ctx context.Context, req *pb.TerminalGetBy
 	return s.svc.GetTErminalByID(ctx, req)
 }
 
+func (s *routemapGRPCApi) CreateRoute(ctx context.Context, req *pb.CreateRouteRequest) (*pb.CreateRouteResponse, error) {
+	return s.svc.CreateRoute(ctx, req)
+}
+
 type routemapGRPCClient struct {
 	cfg config.RoutemapServiceConfig
 }
@@ -78,4 +82,18 @@ func (c *routemapGRPCClient) GetTerminal(ctx context.Context, in *pb.TerminalGet
 	}
 
 	return res, nil
+}
+
+func (c *routemapGRPCClient) CreateRoute(ctx context.Context, in *pb.CreateRouteRequest, opts ...grpc.CallOption) (*pb.CreateRouteResponse, error) {
+	client, err := c.newClient()
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := client.CreateRoute(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }

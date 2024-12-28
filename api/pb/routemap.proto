@@ -27,7 +27,29 @@ message Terminal {
     string city = 6;
 }
 
+message RouteItem {
+    Terminal Source = 1;      
+	Terminal Destination = 2;
+	uint32 RouteNumber = 3;
+	uint32 TransportType = 4;
+	float Distance = 5;
+}
+
+message CreateRouteRequest {
+    RouteItem routeItem = 1;
+}
+
+message CreateRouteResponse {
+    string id = 1;
+}
+
+message Route {
+    string id = 1;
+    RouteItem routeItem = 2;
+}
+
 service RoutemapService {
     rpc CreateTerminal(TerminalCreateRequest) returns (TerminalCreateResponse);
     rpc GetTerminal(TerminalGetByIDRequest) returns (Terminal);
+    rpc CreateRoute(CreateRouteRequest) returns (CreateRouteResponse);
 }

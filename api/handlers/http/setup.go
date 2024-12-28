@@ -48,14 +48,14 @@ func registerAuthAPI(appContainer app.App, cfg config.ServerConfig, router fiber
 }
 
 func registerHotelAPI(appContainer hotel.App, router fiber.Router) {
-	//fix it. add the other routes.
+	//TODO fix it. add the other routes.
 	hotelService := appContainer.HotelService()
 
 	hotelHandler := NewHotelHandler(hotelService)
-	router.Post("/hotels", hotelHandler.RegisterHotelHandler)
-	router.Get("/hotels", hotelHandler.GetAllHotelsHandler)
-	router.Get("/hotels/:id", hotelHandler.GetHotelByIDHandler)
-	router.Post("/rooms", hotelHandler.CreateOrUpdateRoom)
+	router.Post("/hotels/upsert", hotelHandler.RegisterHotelHandler)
+	router.Get("/hotels/get-all", hotelHandler.GetAllHotelsHandler)
+	router.Get("/hotels/get-one/:id", hotelHandler.GetHotelByIDHandler)
+	router.Post("/rooms/upsert", hotelHandler.CreateOrUpdateRoom)
 }
 
 func registerAdminAPI(router fiber.Router, cfg config.AdminServiceConfig) {

@@ -1,62 +1,66 @@
 package types
 
 import (
+	"gorm.io/gorm"
 	"time"
 )
 
-// Enums for RoomType and BookingStatus
-const (
-	RoomTypeSingle = "single"
-	RoomTypeDouble = "double"
-	RoomTypeSuite  = "suite"
+type RoomType string
 
-	BookingStatusPending   = "pending"
-	BookingStatusConfirmed = "confirmed"
-	BookingStatusCompleted = "completed"
+const (
+	RoomTypeSingle RoomType = "single"
+	RoomTypeDouble RoomType = "double"
+	RoomTypeSuite  RoomType = "suite"
 )
 
-// Hotel model
+type DurationType string
+
+const (
+	Duration12Hours DurationType = "12 hours"
+	Duration24Hours DurationType = "24 hours"
+)
+
+type BookingStatus string
+
+const (
+	BookingStatusPending   BookingStatus = "pending"
+	BookingStatusConfirmed BookingStatus = "confirmed"
+	BookingStatusCompleted BookingStatus = "completed"
+)
+
 type Hotel struct {
-	ID          uint    `gorm:"primaryKey"`
+	gorm.Model
 	Name        string  `gorm:"type:varchar(100);not null" validate:"required"`
 	Location    string  `gorm:"type:varchar(255);not null" validate:"required"`
 	PhoneNumber string  `gorm:"type:varchar(15);not null" validate:"required,e164"`
 	Email       *string `gorm:"type:varchar(100);unique" validate:"omitempty,email"`
 	Website     *string `gorm:"type:varchar(255)" validate:"omitempty,url"`
 	Rooms       []Room  `gorm:"constraint:OnDelete:CASCADE"`
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
 }
 
-// Room model
 type Room struct {
-	ID                uint      `gorm:"primaryKey"`
-	HotelID           uint      `gorm:"not null"`
-	Type              string    `gorm:"type:enum('single','double','suite');not null" validate:"required,oneof=single double suite"`
-	Price             float64   `gorm:"type:decimal(10,2);not null" validate:"required,gt=0"`
-	Capacity          int       `gorm:"not null" validate:"required,gt=0"`
-	Features          string    `gorm:"type:text"`
-	Duration          string    `gorm:"type:enum('12 hours','24 hours');not null" validate:"required,oneof=12 hours 24 hours"`
-	PublicReleaseDate time.Time `gorm:"not null" validate:"required"`
-	AgencyReleaseDate time.Time `gorm:"not null" validate:"required"`
-	Bookings          []Booking `gorm:"constraint:OnDelete:CASCADE"`
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
+	gorm.Model
+	HotelID           uint         `gorm:"not null"`
+	Type              RoomType     `gorm:"type:room_type;not null" validate:"required,oneof=single double suite"`
+	Price             float64      `gorm:"type:decimal(10,2);not null" validate:"required,gt=0"`
+	Capacity          int          `gorm:"not null" validate:"required,gt=0"`
+	Features          string       `gorm:"type:text"`
+	Duration          DurationType `gorm:"type:duration_type;not null" validate:"required,oneof=12 hours 24 hours"`
+	PublicReleaseDate time.Time    `gorm:"not null" validate:"required"`
+	AgencyReleaseDate time.Time    `gorm:"not null" validate:"required"`
+	Bookings          []Booking    `gorm:"constraint:OnDelete:CASCADE"`
 }
 
-// Booking model
 type Booking struct {
-	ID                 uint       `gorm:"primaryKey"`
-	RoomID             uint       `gorm:"not null"`
-	UserID             uint       `gorm:"not null"`
-	StartTime          time.Time  `gorm:"not null" validate:"required"`
-	EndTime            time.Time  `gorm:"not null" validate:"required,gtfield=StartTime"`
-	TotalPrice         float64    `gorm:"type:decimal(10,2);not null" validate:"required,gt=0"`
-	Status             string     `gorm:"type:enum('pending','confirmed','completed');not null" validate:"required,oneof=pending confirmed completed"`
-	Confirmed          bool       `gorm:"not null" validate:"required"`
-	DateOfConfirmation *time.Time `gorm:"default:null"`
-	IsReferred         *uint      `gorm:"type:bigint;default:null"`
-	DeletedAt          *time.Time `gorm:"index"`
-	CreatedAt          time.Time
-	UpdatedAt          time.Time
+	gorm.Model
+	RoomID             uint          `gorm:"not null"`
+	UserID             uint          `gorm:"not null"`
+	StartTime          time.Time     `gorm:"not null" validate:"required"`
+	EndTime            time.Time     `gorm:"not null" validate:"required,gtfield=StartTime"`
+	TotalPrice         float64       `gorm:"type:decimal(10,2);not null" validate:"required,gt=0"`
+	Status             BookingStatus `gorm:"type:booking_status;not null" validate:"required,oneof=pending confirmed completed"`
+	Confirmed          bool          `gorm:"not null" validate:"required"`
+	DateOfConfirmation *time.Time    `gorm:"default:null"`
+	IsReferred         *uint         `gorm:"type:bigint;default:null"`
+	DeletedAt          *time.Time    `gorm:"index"`
 }

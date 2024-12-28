@@ -152,32 +152,16 @@ func (r *hotelRepo) CreateBooking(booking *types.Booking) (*types.Booking, error
 	if booking.Confirmed == false {
 		booking.Confirmed = false
 	}
+
 	if booking.StartTime.After(booking.EndTime) {
 		return nil, fmt.Errorf("start time must be before end time")
 	}
-	var existingBooking types.Booking
-	if err := r.db.Where("room_id = ? AND user_id = ? AND start_time = ? AND end_time = ?",
-		booking.RoomID, booking.UserID, booking.StartTime, booking.EndTime).First(&existingBooking).Error; err == nil {
-		existingBooking.TotalPrice = booking.TotalPrice
-		existingBooking.Status = booking.Status
-		existingBooking.Confirmed = booking.Confirmed
-		existingBooking.DateOfConfirmation = booking.DateOfConfirmation
-		existingBooking.IsReferred = booking.IsReferred
 
-		if err := r.db.Save(&existingBooking).Error; err != nil {
-			return nil, fmt.Errorf("error updating booking: %v", err)
-		}
-
-		return &existingBooking, nil
-	} else if errors.Is(err, gorm.ErrRecordNotFound) {
-		if err := r.db.Create(booking).Error; err != nil {
-			return nil, fmt.Errorf("error creating booking: %v", err)
-		}
-
-		return booking, nil
-	} else {
-		return nil, fmt.Errorf("error checking booking existence: %v", err)
+	if err := r.db.Create(booking).Error; err != nil {
+		return nil, fmt.Errorf("error creating booking: %v", err)
 	}
+
+	return booking, nil
 }
 
 // UpdateBooking updates an existing booking.

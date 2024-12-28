@@ -1,37 +1,41 @@
 package storage
 
 import (
-	"errors"
+	"fmt"
 	"gorm.io/gorm"
+	"qolibaba/internal/bank/port"
 	"qolibaba/pkg/adapter/storage/types"
 )
 
-type BankRepository struct {
+// bankRepo implements the WalletRepository interface
+type bankRepo struct {
 	db *gorm.DB
 }
 
-func NewWalletRepository(db *gorm.DB) *BankRepository {
-	return &BankRepository{
+// NewBankRepo creates a new instance of walletRepo
+func NewBankRepo(db *gorm.DB) port.Repo {
+	return &bankRepo{
 		db: db,
 	}
 }
 
-// AddCardToWallet adds a new card to the wallet table
-func (r *BankRepository) AddCardToWallet(userID uint, cardNumber string) (*types.Wallet, error) {
+// CreateWallet creates a new wallet in the database
+func (r *bankRepo) CreateWallet(wallet *types.Wallet) (*types.Wallet, error) {
+
+	if wallet.UserID == nil {
+		return nil, fmt.Errorf("user ID must be provided")
+	}
+	if wallet.Role == "" {
+		wallet.Role = "user"
+	}
 	var existingWallet types.Wallet
-	if err := r.db.Where("card_number = ?", cardNumber).First(&existingWallet).Error; err == nil {
-		return nil, errors.New("card number already exists")
-	}
-	newWallet := &types.Wallet{
-		UserID:     &userID,
-		CardNumber: cardNumber,
-		Balance:    0.0,
-		Role:       types.WalletRoleUser,
+	if err := r.db.Where("user_id = ?", wallet.UserID).First(&existingWallet).Error; err == nil {
+		return nil, fmt.Errorf("a wallet already exists for the user")
 	}
 
-	if err := r.db.Create(newWallet).Error; err != nil {
-		return nil, err
+	if err := r.db.Create(wallet).Error; err != nil {
+		return nil, fmt.Errorf("error creating wallet: %v", err)
 	}
 
-	return newWallet, nil
+	return wallet, nil
 }

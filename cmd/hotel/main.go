@@ -27,7 +27,7 @@ func main() {
 		log.Fatalf("failed to initialize hotel app: %v", err)
 	}
 
-	err = http.Run(hotelApp, cfg.ServerConfig)
+	err = http.RunHotel(hotelApp, cfg.Server)
 	if err != nil {
 		log.Fatalf("failed to start HTTP server: %v", err)
 	}

@@ -1,7 +1,6 @@
 package port
 
 import (
-	_ "qolibaba/internal/hotels"
 	"qolibaba/pkg/adapter/storage/types"
 )
 

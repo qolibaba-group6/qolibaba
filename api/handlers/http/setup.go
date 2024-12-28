@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"qolibaba/api/service"
 	"qolibaba/app"
+	"qolibaba/app/hotel"
+
 	// "qolibaba/app/admin"
 	"qolibaba/config"
 
@@ -18,6 +20,15 @@ func Run(appContainer app.App, serverCfg config.ServerConfig, adminCfg config.Ad
 
 	registerAuthAPI(appContainer, serverCfg, api)
 	registerAdminAPI(api, adminCfg)
+
+	return router.Listen(fmt.Sprintf(":%d", serverCfg.HttpPort))
+}
+
+func RunHotel(appContainer hotel.App, serverCfg config.ServerConfig) error {
+	router := fiber.New()
+
+	api := router.Group("/api/v1", setUserContext)
+
 	registerHotelAPI(appContainer, api)
 
 	return router.Listen(fmt.Sprintf(":%d", serverCfg.HttpPort))
@@ -36,7 +47,7 @@ func registerAuthAPI(appContainer app.App, cfg config.ServerConfig, router fiber
 	// router.Get("/test", newAuthMiddleware([]byte(cfg.Secret)), TestHandler)
 }
 
-func registerHotelAPI(appContainer app.App, router fiber.Router) {
+func registerHotelAPI(appContainer hotel.App, router fiber.Router) {
 	//fix it. add the other routes.
 	hotelService := appContainer.HotelService()
 

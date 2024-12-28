@@ -27,11 +27,15 @@ func (s *routemapGRPCApi) CreateTerminal(ctx context.Context, req *pb.TerminalCr
 }
 
 func (s *routemapGRPCApi) GetTerminal(ctx context.Context, req *pb.TerminalGetByIDRequest) (*pb.Terminal, error) {
-	return s.svc.GetTErminalByID(ctx, req)
+	return s.svc.GetTerminalByID(ctx, req)
 }
 
 func (s *routemapGRPCApi) CreateRoute(ctx context.Context, req *pb.CreateRouteRequest) (*pb.CreateRouteResponse, error) {
 	return s.svc.CreateRoute(ctx, req)
+}
+
+func (s *routemapGRPCApi) GetRoute(ctx context.Context, req *pb.GetRouteByIDRequest) (*pb.Route, error) {
+	return s.svc.GetRouteByID(ctx, req)
 }
 
 type routemapGRPCClient struct {
@@ -91,6 +95,20 @@ func (c *routemapGRPCClient) CreateRoute(ctx context.Context, in *pb.CreateRoute
 	}
 
 	resp, err := client.CreateRoute(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (c *routemapGRPCClient) GetRoute(ctx context.Context, in *pb.GetRouteByIDRequest, opts ...grpc.CallOption) (*pb.Route, error) {
+	client, err := c.newClient()
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := client.GetRoute(ctx, in)
 	if err != nil {
 		return nil, err
 	}

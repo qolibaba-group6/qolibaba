@@ -40,11 +40,22 @@ func registerAdminAPI(router fiber.Router, cfg config.Config) {
 		adminAccessMiddleware,
 		CreateTerminal(cfg.RoutemapService),
 	)
-	adminRouter.Post("/route", CreateRoute(cfg))
+	adminRouter.Post("/route",
+		newAuthMiddleware([]byte(cfg.Server.Secret)),
+		adminAccessMiddleware,
+		CreateRoute(cfg.RoutemapService),
+	)
 }
 
 func registerRoutemapAPI(router fiber.Router, cfg config.Config) {
 	routemapRouter := router.Group("/routemap")
 
-	routemapRouter.Get("/terminal", newAuthMiddleware([]byte(cfg.Server.Secret)), GetTerminal(cfg.RoutemapService))
+	routemapRouter.Get("/terminal", 
+		newAuthMiddleware([]byte(cfg.Server.Secret)), 
+		GetTerminal(cfg.RoutemapService),
+	)
+	routemapRouter.Get("/route", 
+		newAuthMiddleware([]byte(cfg.Server.Secret)), 
+		GetRouteByID(cfg.RoutemapService),
+	)
 }

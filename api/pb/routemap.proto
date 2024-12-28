@@ -48,8 +48,13 @@ message Route {
     RouteItem routeItem = 2;
 }
 
+message GetRouteByIDRequest {
+    string id = 1;
+}
+
 service RoutemapService {
     rpc CreateTerminal(TerminalCreateRequest) returns (TerminalCreateResponse);
     rpc GetTerminal(TerminalGetByIDRequest) returns (Terminal);
     rpc CreateRoute(CreateRouteRequest) returns (CreateRouteResponse);
+    rpc GetRoute(GetRouteByIDRequest) returns (Route);
 }

@@ -43,7 +43,7 @@ func (s *RoutemapService) CreateTerminal(ctx context.Context, req *pb.TerminalCr
 	}, err
 }
 
-func (s *RoutemapService) GetTErminalByID(ctx context.Context, req *pb.TerminalGetByIDRequest) (*pb.Terminal, error) {
+func (s *RoutemapService) GetTerminalByID(ctx context.Context, req *pb.TerminalGetByIDRequest) (*pb.Terminal, error) {
 	terminalID, err := uuid.Parse(req.GetTerminalID())
 	if err != nil {
 		return nil, err
@@ -54,14 +54,7 @@ func (s *RoutemapService) GetTErminalByID(ctx context.Context, req *pb.TerminalG
 		return nil, err
 	}
 
-	return &pb.Terminal{
-		Id:           terminal.ID.String(),
-		Name:         terminal.Name,
-		TerminalType: uint32(terminal.Type),
-		Country:      terminal.Country,
-		State:        terminal.State,
-		City:         terminal.City,
-	}, nil
+	return TerminalDomain2PB(terminal), nil
 }
 
 func (s *RoutemapService) CreateRoute(ctx context.Context, req *pb.CreateRouteRequest) (*pb.CreateRouteResponse, error) {
@@ -94,4 +87,18 @@ func (s *RoutemapService) CreateRoute(ctx context.Context, req *pb.CreateRouteRe
 	return &pb.CreateRouteResponse{
 		Id: id.String(),
 	}, nil
+}
+
+func (s *RoutemapService) GetRouteByID(ctx context.Context, req *pb.GetRouteByIDRequest) (*pb.Route, error) {
+	routId, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, err
+	}
+
+	route, err := s.svc.GetRouteByID(ctx, routId)
+	if err != nil {
+		return nil, err
+	}
+
+	return RouteDomain2PB(route), nil
 }

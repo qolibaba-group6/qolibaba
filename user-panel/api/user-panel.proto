@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package userpanel;
+
+service UserPanelService {
+  // gRPC method to fetch user activities
+  rpc GetUserActivities (UserRequest) returns (UserActivitiesResponse);
+  
+  // gRPC method to fetch wallet transactions
+  rpc GetWalletTransactions (UserRequest) returns (WalletTransactionsResponse);
+}
+
+// User Request
+message UserRequest {
+  string user_id = 1;
+}
+
+// User Activities Response
+message UserActivitiesResponse {
+  repeated Activity activities = 1;
+}
+
+message Activity {
+  string activity = 1;
+  string created_at = 2;
+}
+
+// Wallet Transactions Response
+message WalletTransactionsResponse {
+  repeated Transaction transactions = 1;
+}
+
+message Transaction {
+  string transaction_type = 1;
+  float amount = 2;
+  string description = 3;
+  string created_at = 4;
+}

@@ -55,7 +55,16 @@ func registerHotelAPI(appContainer hotel.App, router fiber.Router) {
 	router.Post("/hotels/upsert", hotelHandler.RegisterHotelHandler)
 	router.Get("/hotels/get-all", hotelHandler.GetAllHotelsHandler)
 	router.Get("/hotels/get-one/:id", hotelHandler.GetHotelByIDHandler)
+	router.Delete("/hotels/delete/:id", hotelHandler.DeleteHotelHandler)
 	router.Post("/rooms/upsert", hotelHandler.CreateOrUpdateRoom)
+	router.Get("/rooms/get-one/:id", hotelHandler.GetRoomByID)
+	router.Get("/rooms/get-one-by-hotelId/:hotel_id", hotelHandler.GetRoomsByHotelID)
+	router.Delete("/rooms/delete/:id", hotelHandler.DeleteRoom)
+	router.Post("/rooms/book-hotel", hotelHandler.CreateBooking)
+	router.Get("/rooms/booking-detail/:id", hotelHandler.GetBookingByID)
+	router.Get("/rooms/booking-detail-by-userId/:user_id", hotelHandler.GetBookingsByUserID)
+	router.Post("/rooms/cancel-booking/:id", hotelHandler.SoftDeleteBooking)
+	router.Post("/rooms/confirm-booking/:id", hotelHandler.ConfirmBooking)
 }
 
 func registerAdminAPI(router fiber.Router, cfg config.AdminServiceConfig) {

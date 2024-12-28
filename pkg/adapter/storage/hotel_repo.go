@@ -85,9 +85,21 @@ func (r *hotelRepo) DeleteHotel(id string) error {
 
 // CreateOrUpdateRoom creates a new room or updates an existing one.
 func (r *hotelRepo) CreateOrUpdateRoom(room *types.Room) (*types.Room, error) {
+	var hotel types.Hotel
+	if err := r.db.Where("id = ?", room.HotelID).First(&hotel).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("hotel with ID %d does not exist", room.HotelID)
+		}
+		return nil, fmt.Errorf("error checking hotel existence: %v", err)
+	}
+
 	var existingRoom types.Room
 	if err := r.db.Where("id = ?", room.ID).First(&existingRoom).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			if room.Status == "" {
+				room.Status = types.RoomStatusFree
+			}
+
 			if err := r.db.Create(room).Error; err != nil {
 				return nil, fmt.Errorf("error creating room: %v", err)
 			}
@@ -103,6 +115,7 @@ func (r *hotelRepo) CreateOrUpdateRoom(room *types.Room) (*types.Room, error) {
 	existingRoom.Duration = room.Duration
 	existingRoom.PublicReleaseDate = room.PublicReleaseDate
 	existingRoom.AgencyReleaseDate = room.AgencyReleaseDate
+	existingRoom.Status = room.Status
 	existingRoom.UpdatedAt = time.Now()
 
 	if err := r.db.Save(&existingRoom).Error; err != nil {
@@ -136,15 +149,35 @@ func (r *hotelRepo) DeleteRoom(id uint) error {
 
 // CreateBooking creates a new booking in the system.
 func (r *hotelRepo) CreateBooking(booking *types.Booking) (*types.Booking, error) {
+	if booking.Confirmed == false {
+		booking.Confirmed = false
+	}
 	if booking.StartTime.After(booking.EndTime) {
 		return nil, fmt.Errorf("start time must be before end time")
 	}
+	var existingBooking types.Booking
+	if err := r.db.Where("room_id = ? AND user_id = ? AND start_time = ? AND end_time = ?",
+		booking.RoomID, booking.UserID, booking.StartTime, booking.EndTime).First(&existingBooking).Error; err == nil {
+		existingBooking.TotalPrice = booking.TotalPrice
+		existingBooking.Status = booking.Status
+		existingBooking.Confirmed = booking.Confirmed
+		existingBooking.DateOfConfirmation = booking.DateOfConfirmation
+		existingBooking.IsReferred = booking.IsReferred
 
-	if err := r.db.Create(booking).Error; err != nil {
-		return nil, fmt.Errorf("error creating booking: %v", err)
+		if err := r.db.Save(&existingBooking).Error; err != nil {
+			return nil, fmt.Errorf("error updating booking: %v", err)
+		}
+
+		return &existingBooking, nil
+	} else if errors.Is(err, gorm.ErrRecordNotFound) {
+		if err := r.db.Create(booking).Error; err != nil {
+			return nil, fmt.Errorf("error creating booking: %v", err)
+		}
+
+		return booking, nil
+	} else {
+		return nil, fmt.Errorf("error checking booking existence: %v", err)
 	}
-
-	return booking, nil
 }
 
 // UpdateBooking updates an existing booking.

@@ -51,14 +51,17 @@ func (a *app) setDB() error {
 	}
 
 	// Create custom enum types if they don't exist
-
-	if err := db.Exec("CREATE TYPE duration_type AS ENUM ('12 hours', '24 hours');").Error; err != nil {
-		return err
-	}
-	if err := db.Exec("CREATE TYPE booking_status AS ENUM ('pending', 'confirmed', 'completed');").Error; err != nil {
-		return err
-	}
-
+	/*
+		if err := db.Exec("CREATE TYPE room_status AS ENUM ('free', 'booked');").Error; err != nil {
+			return err
+		}
+		if err := db.Exec("CREATE TYPE duration_type AS ENUM ('12 hours', '24 hours');").Error; err != nil {
+			return err
+		}
+		if err := db.Exec("CREATE TYPE booking_status AS ENUM ('pending', 'confirmed', 'completed');").Error; err != nil {
+			return err
+		}
+	*/
 	// Apply database migrations for hotel-related models.
 	if err := db.AutoMigrate(
 		&types.Hotel{},

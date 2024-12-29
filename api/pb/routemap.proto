@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+option go_package = "qolibaba/api/pb";
+
+message TerminalCreateRequest {
+    string name = 1;
+    uint32 terminalType = 2;
+    string country = 3;
+    string state = 4;
+    string city = 5;
+}
+
+message TerminalCreateResponse {
+    string terminalID = 1;
+}
+
+message TerminalGetByIDRequest {
+    string terminalID = 1;
+}
+
+message Terminal {
+    string id = 1;
+    string name = 2;
+    uint32 terminalType = 3;
+    string country = 4;
+    string state = 5;
+    string city = 6;
+}
+
+message RouteItem {
+    Terminal Source = 1;      
+	Terminal Destination = 2;
+	uint32 RouteNumber = 3;
+	uint32 TransportType = 4;
+	float Distance = 5;
+}
+
+message CreateRouteRequest {
+    RouteItem routeItem = 1;
+}
+
+message CreateRouteResponse {
+    string id = 1;
+}
+
+message Route {
+    string id = 1;
+    RouteItem routeItem = 2;
+}
+
+message GetRouteByIDRequest {
+    string id = 1;
+}
+
+service RoutemapService {
+    rpc CreateTerminal(TerminalCreateRequest) returns (TerminalCreateResponse);
+    rpc GetTerminal(TerminalGetByIDRequest) returns (Terminal);
+    rpc CreateRoute(CreateRouteRequest) returns (CreateRouteResponse);
+    rpc GetRoute(GetRouteByIDRequest) returns (Route);
+}

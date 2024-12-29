@@ -5,21 +5,22 @@ import (
 	"fmt"
 	"qolibaba/api/service"
 	"qolibaba/app"
-	// "qolibaba/app/admin"
+
 	"qolibaba/config"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-func Run(appContainer app.App, serverCfg config.ServerConfig, adminCfg config.AdminServiceConfig) error {
+func Run(appContainer app.App, cfg config.Config) error {
 	router := fiber.New()
 
 	api := router.Group("/api/v1", setUserContext)
 
-	registerAuthAPI(appContainer, serverCfg, api)
-	registerAdminAPI(api, adminCfg)
+	registerAuthAPI(appContainer, cfg.Server, api)
+	registerAdminAPI(api, cfg)
+	registerRoutemapAPI(api, cfg)
 
-	return router.Listen(fmt.Sprintf(":%d", serverCfg.HttpPort))
+	return router.Listen(fmt.Sprintf(":%d", cfg.Server.HttpPort))
 }
 
 func registerAuthAPI(appContainer app.App, cfg config.ServerConfig, router fiber.Router) {
@@ -28,16 +29,33 @@ func registerAuthAPI(appContainer app.App, cfg config.ServerConfig, router fiber
 	router.Post("/sign-up", SignUp(userService))
 	router.Post("/sign-in", SingIn(userService))
 	router.Get("/test", newAuthMiddleware([]byte(cfg.Secret)), TestHandler)
-	// userSvcGetter := userServiceGetter(appContainer, cfg)
-	// router.Post("/sign-up", setTransaction(appContainer.DB()), SignUp(userSvcGetter))
-	// router.Get("/send-otp", setTransaction(appContainer.DB()), SendSignInOTP(userSvcGetter))
-	// router.Post("/sign-in", setTransaction(appContainer.DB()), SignIn(userSvcGetter))
-	// router.Get("/test", newAuthMiddleware([]byte(cfg.Secret)), TestHandler)
 }
 
-
-func registerAdminAPI(router fiber.Router, cfg config.AdminServiceConfig) {
+func registerAdminAPI(router fiber.Router, cfg config.Config) {
 	adminRouter := router.Group("/admin")
 
-	adminRouter.Post("/say-hello", SayHello(cfg))
+	adminRouter.Post("/say-hello", SayHello(cfg.AdminService))
+	adminRouter.Post("/terminal",
+		newAuthMiddleware([]byte(cfg.Server.Secret)),
+		adminAccessMiddleware,
+		CreateTerminal(cfg.RoutemapService),
+	)
+	adminRouter.Post("/route",
+		newAuthMiddleware([]byte(cfg.Server.Secret)),
+		adminAccessMiddleware,
+		CreateRoute(cfg.RoutemapService),
+	)
+}
+
+func registerRoutemapAPI(router fiber.Router, cfg config.Config) {
+	routemapRouter := router.Group("/routemap")
+
+	routemapRouter.Get("/terminal", 
+		newAuthMiddleware([]byte(cfg.Server.Secret)), 
+		GetTerminal(cfg.RoutemapService),
+	)
+	routemapRouter.Get("/route", 
+		newAuthMiddleware([]byte(cfg.Server.Secret)), 
+		GetRouteByID(cfg.RoutemapService),
+	)
 }

@@ -22,5 +22,5 @@ func main() {
 
 	appContainer := app.NewMustApp(cfg)
 
-	log.Fatal(http.Run(appContainer, cfg.Server, cfg.AdminService))
+	log.Fatal(http.Run(appContainer, cfg))
 }

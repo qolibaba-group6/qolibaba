@@ -54,11 +54,10 @@ type Claim struct {
 	gorm.Model
 	TransactionID uint       `gorm:"not null" json:"transaction_id"`
 	UserID        uint       `gorm:"not null" json:"user_id"`
+	SellerUserID  uint       `gorm:"not null" json:"seller_user_id"`
 	Amount        float64    `gorm:"type:decimal(15,2);not null" json:"amount"`
 	ClaimType     string     `gorm:"type:enum('hotel', 'flight', 'transport', 'other');not null" json:"claim_type"`
 	ClaimDetails  string     `gorm:"type:text" json:"claim_details"`
-	ServiceID     uint       `gorm:"not null" json:"service_id"`
-	ServiceType   string     `gorm:"type:enum('hotel', 'flight', 'transport');not null" json:"service_type"`
 	Status        string     `gorm:"type:enum('pending', 'paid', 'failed');not null" json:"status"`
 	CompletedAt   *time.Time `gorm:"default:null" json:"completed_at"`
 

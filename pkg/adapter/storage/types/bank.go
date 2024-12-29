@@ -1,6 +1,7 @@
 package types
 
 import (
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"time"
 )
@@ -22,6 +23,7 @@ const (
 
 	StatusPending   = "pending"
 	StatusCompleted = "completed"
+	StatusPaid      = "paid"
 	StatusFailed    = "failed"
 )
 
@@ -35,9 +37,9 @@ type Wallet struct {
 	Transactions []Transaction `gorm:"foreignKey:WalletID" json:"transactions"`
 }
 
-// Transaction Model
 type Transaction struct {
 	gorm.Model
+	TrackingID      uuid.UUID  `gorm:"type:uuid;default:uuid_generate_v4();unique" json:"tracking_id"`
 	WalletID        uint       `gorm:"not null" json:"wallet_id"`
 	Amount          float64    `gorm:"type:decimal(15,2);not null" json:"amount"`
 	TransactionType string     `gorm:"type:enum('deposit', 'withdrawal', 'payment', 'refund');not null" json:"transaction_type"`
@@ -49,17 +51,15 @@ type Transaction struct {
 	Claims []Claim `gorm:"foreignKey:TransactionID" json:"claims"`
 }
 
-// Claim Model
 type Claim struct {
 	gorm.Model
-	TransactionID uint       `gorm:"not null" json:"transaction_id"`
-	UserID        uint       `gorm:"not null" json:"user_id"`
-	SellerUserID  uint       `gorm:"not null" json:"seller_user_id"`
-	Amount        float64    `gorm:"type:decimal(15,2);not null" json:"amount"`
-	ClaimType     string     `gorm:"type:enum('hotel', 'flight', 'transport', 'other');not null" json:"claim_type"`
-	ClaimDetails  string     `gorm:"type:text" json:"claim_details"`
-	Status        string     `gorm:"type:enum('pending', 'paid', 'failed');not null" json:"status"`
-	CompletedAt   *time.Time `gorm:"default:null" json:"completed_at"`
+	BuyerUserID  uint       `gorm:"not null" json:"user_id"`
+	SellerUserID uint       `gorm:"not null" json:"seller_user_id"`
+	Amount       float64    `gorm:"type:decimal(15,2);not null" json:"amount"`
+	ClaimType    string     `gorm:"type:enum('hotel', 'flight', 'transport', 'other');not null" json:"claim_type"`
+	ClaimDetails string     `gorm:"type:text" json:"claim_details"`
+	Status       string     `gorm:"type:enum('pending', 'paid', 'failed');not null" json:"status"`
+	CompletedAt  *time.Time `gorm:"default:null" json:"completed_at"`
 
-	Transaction Transaction `gorm:"foreignKey:TransactionID" json:"transaction"`
+	Transactions []Transaction `gorm:"foreignKey:ClaimID" json:"transactions"`
 }

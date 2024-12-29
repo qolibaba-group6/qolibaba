@@ -1,7 +1,7 @@
 {
     "db": {
-        "host": "127.0.0.1",
-        "port": 5050,
+        "host": "qolibaba-db",
+        "port": 5432,
         "database": "qolibaba_db",
         "user": "app",
         "password": "password123",
@@ -13,15 +13,15 @@
         "authExpMin": 30,
         "authExpRefreshMin": 180
     },
-    "redis": {
-        "host": "",
-        "port": 0
-    },
     "superAdmin": {
         "email": "admin@example.com",
         "password": "password123"
     },
     "adminService": {
         "port": 50051
+    },
+    "routemapService": {
+        "port": 2000,
+        "host": "routemap-service"
     }
 }

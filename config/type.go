@@ -40,5 +40,6 @@ type AdminServiceConfig struct {
 }
 
 type RoutemapServiceConfig struct {
-	Port uint `json:"port"`
+	Port uint   `json:"port"`
+	Host string `json:"host"`
 }

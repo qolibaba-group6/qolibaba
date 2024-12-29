@@ -3,12 +3,11 @@ FROM golang:1.23 AS builder
 
 # Set environment variables for building
 ENV GO111MODULE=on \
-    # GOPROXY=direct \
     CGO_ENABLED=0 \
     GOOS=linux \
     GOARCH=amd64 
 
-    # Copy the entire project directory into the container
+# Copy the entire project directory into the container
 COPY . /app
 
 # Set the working directory inside the container
@@ -24,7 +23,7 @@ COPY go.mod go.sum ./
 RUN go build -o /app/qolibaba ./cmd/main.go
 
 # Use a lightweight runtime image for the final container
-FROM alpine:latest
+FROM alpine:3.21.0
 
 RUN apk add --no-cache ca-certificates
 

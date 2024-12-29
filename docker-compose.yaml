@@ -7,9 +7,23 @@ services:
     ports:
       - "${HTTP_PORT}:${HTTP_PORT}"
     volumes:
-      - .env:/app/.env
+      - ./config.json:/app/config.json
     depends_on:
       - qolibaba-db
+
+
+  routemap-service:
+    container_name: routemap-service
+    build:
+      context: .
+      dockerfile: ./build/routemap/Dockerfile
+    ports:
+      - "${ROUTEMAP_PORT}:8080"
+    volumes:
+      - ./config.json:/app/config.json
+    depends_on:
+      - qolibaba-db
+
 
   qolibaba-db:
     container_name: qolibaba-db

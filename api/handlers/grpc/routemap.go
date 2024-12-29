@@ -49,7 +49,7 @@ func NewRoutemapGRPCClient(cfg config.RoutemapServiceConfig) pb.RoutemapServiceC
 }
 
 func (c *routemapGRPCClient) newClient() (pb.RoutemapServiceClient, error) {
-	target := fmt.Sprintf(":%d", c.cfg.Port)
+	target := fmt.Sprintf("%s:%d", c.cfg.Host, c.cfg.Port)
 	client, err := grpc.NewClient(target, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err

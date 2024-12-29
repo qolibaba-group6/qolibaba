@@ -1,27 +1,23 @@
-package config
+package main
 
 import (
 	"log"
-	"github.com/spf13/viper"
+	"qolibaba/internal/adapters/database"
+	"qolibaba/internal/adapters/http"
+	"qolibaba/internal/config"
 )
 
-type Config struct {
-	ServerAddress string
-	DatabaseDSN   string
-}
+func main() {
+	// Load configuration
+	cfg := config.LoadConfig()
 
-func LoadConfig() Config {
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".")
-	viper.AutomaticEnv()
-
-	if err := viper.ReadInConfig(); err != nil {
-		log.Printf("No configuration file found: %v", err)
+	// Initialize database
+	db, err := database.InitDB(cfg.DatabaseDSN)
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
 	}
 
-	return Config{
-		ServerAddress: viper.GetString("SERVER_ADDRESS"),
-		DatabaseDSN:   viper.GetString("DATABASE_DSN"),
-	}
+	// Initialize router and start server
+	router := http.NewGinRouter()
+	router.Start(cfg.ServerAddress, db)
 }

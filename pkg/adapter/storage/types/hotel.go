@@ -63,5 +63,6 @@ type Booking struct {
 	Confirmed          bool          `gorm:"not null;default:false" json:"confirmed"`
 	DateOfConfirmation *time.Time    `gorm:"default:null" json:"date_of_confirmation"`
 	IsReferred         *uint         `gorm:"type:bigint;default:null" json:"is_referred"`
+	ClaimID            *uint         `gorm:"default:null" json:"claim_id"`
 	DeletedAt          *time.Time    `gorm:"index" json:"deleted_at"`
 }

@@ -1,22 +1,27 @@
 package hotels
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"qolibaba/internal/hotels/port"
 	"qolibaba/pkg/adapter/storage/types"
+	"qolibaba/pkg/messaging"
 	"regexp"
+	"strconv"
 )
 
 type service struct {
 	hotelRepo port.Repo
 	validate  *validator.Validate
+	messaging *messaging.Messaging
 }
 
-func NewService(repo port.Repo) port.Service {
+func NewService(repo port.Repo, messaging *messaging.Messaging) port.Service {
 	return &service{
 		hotelRepo: repo,
 		validate:  validator.New(),
+		messaging: messaging,
 	}
 }
 
@@ -119,7 +124,6 @@ func (s *service) DeleteRoom(id uint) error {
 }
 
 // CreateBooking creates a new booking for a user (either general user or referred by a travel agency).
-// In your service function:
 func (s *service) CreateBooking(booking *types.Booking) (*types.Booking, error) {
 	room, err := s.hotelRepo.GetRoomByID(booking.RoomID)
 	if err != nil {
@@ -129,7 +133,7 @@ func (s *service) CreateBooking(booking *types.Booking) (*types.Booking, error) 
 		return nil, fmt.Errorf("start time must be before end time")
 	}
 
-	totalPrice := room.Price * float64(booking.EndTime.Sub(booking.StartTime).Hours()/24) // Assuming daily pricing
+	totalPrice := room.Price * (booking.EndTime.Sub(booking.StartTime).Hours() / 24) // Assuming daily pricing
 
 	booking.TotalPrice = &totalPrice
 
@@ -142,7 +146,39 @@ func (s *service) CreateBooking(booking *types.Booking) (*types.Booking, error) 
 		return nil, fmt.Errorf("error creating booking: %v", err)
 	}
 
-	return newBooking, nil
+	claim := types.Claim{
+		BuyerUserID:  booking.UserID,
+		SellerUserID: room.HotelID,
+		Amount:       *newBooking.TotalPrice,
+		ClaimType:    "hotel",
+		ClaimDetails: fmt.Sprintf("Booking for room %d from %s to %s", booking.RoomID, booking.StartTime, booking.EndTime),
+		Status:       "pending",
+	}
+
+	claimData, err := json.Marshal(claim)
+	if err != nil {
+		return nil, fmt.Errorf("error marshalling claim: %v", err)
+	}
+
+	claimID, err := s.messaging.PublishClaimToBank(claimData)
+	if err != nil {
+		return nil, fmt.Errorf("error sending claim to bank: %v", err)
+	}
+
+	claimIDUint, err := strconv.ParseUint(claimID, 10, 32)
+	if err != nil {
+		return nil, fmt.Errorf("error converting claimID to uint: %v", err)
+	}
+
+	claimIDPointer := uint(claimIDUint)
+	newBooking.ClaimID = &claimIDPointer
+
+	updatedBooking, err := s.hotelRepo.UpdateBooking(newBooking)
+	if err != nil {
+		return nil, fmt.Errorf("error updating booking with claim ID: %v", err)
+	}
+
+	return updatedBooking, nil
 }
 
 // UpdateBooking updates an existing booking.

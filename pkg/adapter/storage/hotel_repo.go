@@ -6,6 +6,7 @@ import (
 	"gorm.io/gorm"
 	"qolibaba/internal/hotels/port"
 	"qolibaba/pkg/adapter/storage/types"
+	"qolibaba/pkg/messaging"
 	"time"
 )
 
@@ -13,10 +14,10 @@ type hotelRepo struct {
 	db *gorm.DB
 }
 
-func NewHotelRepo(db *gorm.DB) port.Repo {
+func NewHotelRepo(db *gorm.DB) (port.Repo, *messaging.Messaging) {
 	return &hotelRepo{
 		db: db,
-	}
+	}, nil
 }
 
 func (r *hotelRepo) RegisterHotel(hotel *types.Hotel) (*types.Hotel, error) {

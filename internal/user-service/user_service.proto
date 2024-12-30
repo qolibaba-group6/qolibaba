@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package user;
+
+// اضافه کردن go_package برای پشتیبانی از تولید کدهای Go
+option go_package = "travel-booking-app/internal/user-service;user";
+
+// تعریف سرویس
+service UserService {
+    rpc GetUser(GetUserRequest) returns (GetUserResponse);
+}
+
+// تعریف پیام‌های ورودی و خروجی
+message GetUserRequest {
+    string id = 1; // شناسه کاربر
+}
+
+message GetUserResponse {
+    string name = 1; // نام کاربر
+}

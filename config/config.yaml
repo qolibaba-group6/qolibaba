@@ -1,0 +1,15 @@
+# configs/config.yaml
+server:
+  port: 8080
+
+database:
+  host: localhost
+  port: 5432
+  user: ehsansobhani
+  password: "01361015"
+  name: my_database
+
+
+jwt:
+  secret: your_jwt_secret_key
+  expiry: 1h

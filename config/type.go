@@ -5,8 +5,10 @@ type Config struct {
 	Server          ServerConfig          `json:"server"`
 	Redis           RedisConfig           `json:"redis"`
 	SuperAdmin      SuperAdmin            `json:"superAdmin"`
-	AdminService    AdminServiceConfig    `json:"adminService"`
 	RoutemapService RoutemapServiceConfig `json:"routemapService"`
+	AdminService AdminServiceConfig `json:"adminService"`
+	HotelService HotelServiceConfig `json:"hotelService"`
+	BankService  BankServiceConfig `json:"bankService"`
 }
 
 type DBConfig struct {
@@ -36,6 +38,12 @@ type SuperAdmin struct {
 }
 
 type AdminServiceConfig struct {
+	Port uint `json:"port"`
+}
+type HotelServiceConfig struct {
+	Port uint `json:"port"`
+}
+type BankServiceConfig struct {
 	Port uint `json:"port"`
 }
 

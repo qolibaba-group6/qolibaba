@@ -3,13 +3,11 @@ package http
 import (
 	"context"
 	"fmt"
+	"github.com/gofiber/fiber/v2"
 	"qolibaba/api/service"
 	"qolibaba/app"
 	"qolibaba/app/bank"
 	"qolibaba/app/hotel"
-	"qolibaba/config"
-
-	"github.com/gofiber/fiber/v2"
 	"qolibaba/config"
 )
 

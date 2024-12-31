@@ -237,7 +237,7 @@ func (s *service) ConfirmBooking(bookingID uint) (*types.Booking, error) {
 		return nil, fmt.Errorf("no claimId associated with this booking")
 	}
 
-	bankServiceURL := fmt.Sprintf("http://bank-service:7070/bank/process-confirmed-claim/%d", *booking.ClaimID)
+	bankServiceURL := fmt.Sprintf("http://bank-service:7070/api/v1/bank/process-confirmed-claim/%d", *booking.ClaimID)
 	req, err := http.NewRequest(http.MethodPost, bankServiceURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request to bank service: %v", err)

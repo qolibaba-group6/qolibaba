@@ -1,14 +1,15 @@
 package config
 
 type Config struct {
-	DB              DBConfig              `json:"db"`
-	Server          ServerConfig          `json:"server"`
-	Redis           RedisConfig           `json:"redis"`
-	SuperAdmin      SuperAdmin            `json:"superAdmin"`
-	RoutemapService RoutemapServiceConfig `json:"routemapService"`
-	AdminService AdminServiceConfig `json:"adminService"`
-	HotelService HotelServiceConfig `json:"hotelService"`
-	BankService  BankServiceConfig `json:"bankService"`
+	DB                          DBConfig                    `json:"db"`
+	Server                      ServerConfig                `json:"server"`
+	Redis                       RedisConfig                 `json:"redis"`
+	SuperAdmin                  SuperAdmin                  `json:"superAdmin"`
+	RoutemapService             RoutemapServiceConfig       `json:"routemapService"`
+	AdminService                AdminServiceConfig          `json:"adminService"`
+	HotelService                HotelServiceConfig          `json:"hotelService"`
+	BankService                 BankServiceConfig           `json:"bankService"`
+	TravelAgenciesServiceConfig TravelAgenciesServiceConfig `json:"travelAgenciesService"`
 }
 
 type DBConfig struct {
@@ -44,6 +45,9 @@ type HotelServiceConfig struct {
 	Port uint `json:"port"`
 }
 type BankServiceConfig struct {
+	Port uint `json:"port"`
+}
+type TravelAgenciesServiceConfig struct {
 	Port uint `json:"port"`
 }
 

@@ -42,7 +42,7 @@ func (s *service) ChargeWallet(walletID uint, amount float64) (*types.Wallet, *t
 	if err != nil {
 		return nil, nil, fmt.Errorf("error charging the wallet: %v", err)
 	}
-	transaction, err := s.bankRepo.CreateTransaction(walletID, amount, types.TransactionTypeDeposit, "Charging the wallet by user.")
+	transaction, err := s.bankRepo.CreateTransaction(walletID, amount, string(types.TransactionTypeDeposit), "Charging the wallet by user.")
 	if err != nil {
 		return nil, nil, fmt.Errorf("error creating transaction: %v", err)
 	}
@@ -61,25 +61,25 @@ func (s *service) ProcessUnconfirmedClaim(claim *types.Claim) (*types.Claim, err
 
 	err := s.bankRepo.Withdrawal(claim.BuyerUserID, bankWalletID, claim.Amount)
 	if err != nil {
-		failedClaim, _ := s.handleClaim(claim, types.StatusFailed, fmt.Errorf("withdrawal error: %v", err))
+		failedClaim, _ := s.handleClaim(claim, string(types.StatusFailed), fmt.Errorf("withdrawal error: %v", err))
 		return failedClaim, nil
 	}
 
-	withdrawTransaction, err := s.bankRepo.CreateTransaction(claim.BuyerUserID, claim.Amount, types.TransactionTypeWithdrawal, "claim withdrawal to bank")
+	withdrawTransaction, err := s.bankRepo.CreateTransaction(claim.BuyerUserID, claim.Amount, string(types.TransactionTypeWithdrawal), "claim withdrawal to bank")
 	if err != nil {
-		failedClaim, _ := s.handleClaim(claim, types.StatusFailed, fmt.Errorf("withdrawal error: %v", err))
+		failedClaim, _ := s.handleClaim(claim, string(types.StatusFailed), fmt.Errorf("withdrawal error: %v", err))
 		return failedClaim, nil
 	}
 
-	depositTransaction, err := s.bankRepo.CreateTransaction(bankWalletID, claim.Amount, types.TransactionTypeDeposit, "claim deposit from buyer")
+	depositTransaction, err := s.bankRepo.CreateTransaction(bankWalletID, claim.Amount, string(types.TransactionTypeDeposit), "claim deposit from buyer")
 	if err != nil {
-		failedClaim, _ := s.handleClaim(claim, types.StatusFailed, fmt.Errorf("withdrawal error: %v", err))
+		failedClaim, _ := s.handleClaim(claim, string(types.StatusFailed), fmt.Errorf("withdrawal error: %v", err))
 		return failedClaim, nil
 	}
 
 	claim.Transactions = []types.Transaction{*withdrawTransaction, *depositTransaction}
-	claim.Status = types.StatusPending
-	updatedClaim, err := s.handleClaim(claim, types.StatusFailed, fmt.Errorf("withdrawal error: %v", err))
+	claim.Status = string(types.StatusPending)
+	updatedClaim, err := s.handleClaim(claim, string(types.StatusFailed), fmt.Errorf("withdrawal error: %v", err))
 	if err != nil {
 		return nil, fmt.Errorf("failed to save claim with pending status: %v", err)
 	}
@@ -93,31 +93,31 @@ func (s *service) ProcessConfirmedClaim(claimID uint) (*types.Claim, error) {
 	}
 
 	if claim.Amount <= 0 {
-		return s.handleClaim(claim, types.StatusFailed, fmt.Errorf("claim amount must be greater than zero"))
+		return s.handleClaim(claim, string(types.StatusFailed), fmt.Errorf("claim amount must be greater than zero"))
 	}
 	if claim.BuyerUserID == 0 || claim.SellerUserID == 0 {
-		return s.handleClaim(claim, types.StatusFailed, fmt.Errorf("buyer and seller user IDs must be valid"))
+		return s.handleClaim(claim, string(types.StatusFailed), fmt.Errorf("buyer and seller user IDs must be valid"))
 	}
 
 	const bankWalletID = 1
 
 	err = s.bankRepo.Withdrawal(bankWalletID, claim.SellerUserID, claim.Amount)
 	if err != nil {
-		return s.handleClaim(claim, types.StatusFailed, fmt.Errorf("withdrawal error: %v", err))
+		return s.handleClaim(claim, string(types.StatusFailed), fmt.Errorf("withdrawal error: %v", err))
 	}
 
-	withdrawTransaction, err := s.bankRepo.CreateTransaction(bankWalletID, claim.Amount, types.TransactionTypeWithdrawal, "claim withdrawal to seller")
+	withdrawTransaction, err := s.bankRepo.CreateTransaction(bankWalletID, claim.Amount, string(types.TransactionTypeWithdrawal), "claim withdrawal to seller")
 	if err != nil {
-		return s.handleClaim(claim, types.StatusFailed, fmt.Errorf("transaction creation error: %v", err))
+		return s.handleClaim(claim, string(types.StatusFailed), fmt.Errorf("transaction creation error: %v", err))
 	}
 
-	depositTransaction, err := s.bankRepo.CreateTransaction(claim.SellerUserID, claim.Amount, types.TransactionTypeDeposit, "claim deposit from bank")
+	depositTransaction, err := s.bankRepo.CreateTransaction(claim.SellerUserID, claim.Amount, string(types.TransactionTypeDeposit), "claim deposit from bank")
 	if err != nil {
-		return s.handleClaim(claim, types.StatusFailed, fmt.Errorf("transaction creation error: %v", err))
+		return s.handleClaim(claim, string(types.StatusFailed), fmt.Errorf("transaction creation error: %v", err))
 	}
 
 	claim.Transactions = []types.Transaction{*withdrawTransaction, *depositTransaction}
-	updatedClaim, err := s.handleClaim(claim, types.StatusPaid, nil)
+	updatedClaim, err := s.handleClaim(claim, string(types.StatusPaid), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update claim status: %v", err)
 	}

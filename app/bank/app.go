@@ -45,6 +45,15 @@ func (a *app) setDB() error {
 	if err != nil {
 		return err
 	}
+	/*if err := db.Exec("CREATE TYPE wallet_role AS ENUM ('user', 'bank');").Error; err != nil {
+		return err
+	}
+	if err := db.Exec("CREATE TYPE transaction_type AS ENUM ('deposit', 'withdrawal');").Error; err != nil {
+		return err
+	}
+	if err := db.Exec("CREATE TYPE status AS ENUM ('pending', 'paid', 'completed', 'failed');").Error; err != nil {
+		return err
+	}*/
 
 	if err := db.AutoMigrate(
 		&types.Wallet{},

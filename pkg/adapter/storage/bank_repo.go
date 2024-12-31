@@ -67,7 +67,7 @@ func (r *bankRepo) CreateTransaction(walletID uint, amount float64, transactionT
 		WalletID:        walletID,
 		Amount:          amount,
 		TransactionType: transactionType,
-		Status:          types.StatusCompleted,
+		Status:          string(types.StatusCompleted),
 		Description:     description,
 	}
 	if err := r.db.Create(transaction).Error; err != nil {

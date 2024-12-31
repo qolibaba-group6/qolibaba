@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-playground/validator/v10"
+	"io"
+	"log"
+	"net/http"
 	"qolibaba/internal/hotels/port"
 	"qolibaba/pkg/adapter/storage/types"
 	"qolibaba/pkg/messaging"
@@ -229,6 +232,35 @@ func (s *service) ConfirmBooking(bookingID uint) (*types.Booking, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error confirming booking: %v", err)
 	}
+
+	if booking.ClaimID == nil {
+		return nil, fmt.Errorf("no claimId associated with this booking")
+	}
+
+	bankServiceURL := fmt.Sprintf("http://bank-service:8080/bank/process-confirmed-claim/%d", *booking.ClaimID)
+	req, err := http.NewRequest(http.MethodPost, bankServiceURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request to bank service: %v", err)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error sending confirmation to bank service: %v", err)
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("bank service returned status: %v", resp.Status)
+	}
+
+	log.Printf("Successfully confirmed claim with ID: %d in Bank Service", *booking.ClaimID)
+
 	return booking, nil
 }
 

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"qolibaba/internal/travel_agencies"
 	"qolibaba/pkg/adapter/storage/types"
+	"time"
 )
 
 type TravelAgencyHandler struct {
@@ -42,4 +43,35 @@ func (h *TravelAgencyHandler) GetAllHotelsAndVehiclesHandler(c *fiber.Ctx) error
 	}
 
 	return c.Status(fiber.StatusOK).JSON(data)
+}
+
+func (h *TravelAgencyHandler) OfferTourHandler(c *fiber.Ctx) error {
+	var input struct {
+		UserID                  uint      `json:"user_id"`
+		RoomID                  uint      `json:"room_id"`
+		StartTime               time.Time `json:"start_time"`
+		EndTime                 time.Time `json:"end_time"`
+		TotalPrice              float64   `json:"total_price"`
+		GoingTransferVehicleID  uint      `json:"going_transfer_vehicle_id"`
+		ReturnTransferVehicleID uint      `json:"return_transfer_vehicle_id"`
+		HotelID                 uint      `json:"hotel_id"`
+	}
+
+	if err := c.BodyParser(&input); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": fmt.Sprintf("Invalid request body: %v", err),
+		})
+	}
+
+	tour, err := h.TravelAgencyService.OfferTour(input.UserID, input.RoomID, input.StartTime, input.EndTime, input.TotalPrice, input.GoingTransferVehicleID, input.ReturnTransferVehicleID, input.HotelID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": fmt.Sprintf("Error offering tour: %v", err),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Tour offered successfully",
+		"tour":    tour,
+	})
 }

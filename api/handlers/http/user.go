@@ -1,63 +1,149 @@
+// api/handlers/http/user.go
 package http
 
 import (
-	"errors"
-	"qolibaba/api/pb"
-	"qolibaba/api/service"
-	"qolibaba/pkg/context"
-	"time"
+	"encoding/json"
+	"net/http"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/ehsansobhani/project_structure-3/internal/user/domain"
+	"github.com/ehsansobhani/project_structure-3/internal/user/port"
+	"github.com/google/uuid"
 )
 
-func SignUp(svc *service.UserService) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		var req pb.UserSignUpRequest
-		if err := c.BodyParser(&req); err != nil {
-			return fiber.ErrBadRequest
-		}
+// UserHandler defines the HTTP handlers for user operations
+type UserHandler struct {
+	Service port.UserService
+}
 
-		resp, err := svc.SignUp(c.UserContext(), &req)
-		if err != nil {
-			if errors.Is(err, service.ErrUserCreationValidation) {
-				return fiber.NewError(fiber.StatusBadRequest, err.Error())
-			}
-
-			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
-		}
-
-		return c.JSON(resp)
+// NewUserHandler creates a new UserHandler
+func NewUserHandler(service port.UserService) *UserHandler {
+	return &UserHandler{
+		Service: service,
 	}
 }
 
-func SingIn(svc *service.UserService) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		var req pb.UserSignInRequest
-		if err := c.BodyParser(&req); err != nil {
-			return fiber.ErrBadRequest
-		}
+// Register handles user registration
+func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
+	var user domain.User
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
 
-		resp, err := svc.SingIn(c.UserContext(), &req)
-		if err != nil {
-			if errors.Is(err, service.ErrUserNotFound) {
-				return c.SendStatus(fiber.StatusNotFound)
-			}
+	if err := h.Service.Register(&user); err != nil {
+		http.Error(w, "Error registering user", http.StatusInternalServerError)
+		return
+	}
 
-			if errors.Is(err, service.ErrInvalidUserPassword) {
-				return fiber.NewError(fiber.StatusUnauthorized, err.Error())
-			}
-
-			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
-		}
-
-		return c.JSON(resp)
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(user); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
 	}
 }
 
-func TestHandler(ctx *fiber.Ctx) error {
-	logger := context.GetLogger(ctx.UserContext())
+// Login handles user login and JWT token generation
+func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
+	var creds struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
 
-	logger.Info("from test handler", "time", time.Now().Format(time.DateTime))
+	token, err := h.Service.Login(creds.Email, creds.Password)
+	if err != nil {
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		return
+	}
 
-	return nil
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(map[string]string{"token": token}); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
+}
+
+// GetProfile handles fetching user profile (protected)
+func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
+	userIDStr, ok := r.Context().Value("userID").(string)
+	if !ok {
+		http.Error(w, "User ID not found in context", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.Service.GetProfile(userID)
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(user); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
+}
+
+// UpdateProfile handles updating user profile (protected)
+func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	userIDStr, ok := r.Context().Value("userID").(string)
+	if !ok {
+		http.Error(w, "User ID not found in context", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	var updatedUser domain.User
+	if err := json.NewDecoder(r.Body).Decode(&updatedUser); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+	updatedUser.ID = userID
+
+	if err := h.Service.UpdateProfile(&updatedUser); err != nil {
+		http.Error(w, "Error updating profile", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(updatedUser); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
+}
+
+// DeleteUser handles deleting a user (protected)
+func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	userIDStr, ok := r.Context().Value("userID").(string)
+	if !ok {
+		http.Error(w, "User ID not found in context", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.Service.DeleteUser(userID); err != nil {
+		http.Error(w, "Error deleting user", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

@@ -33,6 +33,9 @@ type TourBooking struct {
 	TourID                  uint       `gorm:"not null" json:"tour_id"`
 	UserID                  uint       `gorm:"not null" json:"user_id"`
 	BookingDate             time.Time  `gorm:"not null" json:"booking_date"`
+	StartTime               time.Time  `gorm:"not null" json:"start_time"`
+	EndTime                 time.Time  `gorm:"not null" json:"end_time"`
+	ReleaseTime             *time.Time `gorm:"default:null" json:"release_time"`
 	TotalPrice              float64    `gorm:"type:decimal(10,2);not null" json:"total_price"`
 	BookingStatus           string     `gorm:"type:varchar(50);not null" json:"status"`
 	Confirmed               bool       `gorm:"not null;default:false" json:"confirmed"`

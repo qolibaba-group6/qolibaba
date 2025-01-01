@@ -62,6 +62,7 @@ func (a *app) setDB() error {
 	// Apply database migrations for travel agency-related models.
 	if err := db.AutoMigrate(
 		&types.Tour{},
+		&types.TravelAgency{},
 		&types.TourBooking{},
 	); err != nil {
 		return err

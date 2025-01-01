@@ -72,7 +72,6 @@ func (a *app) setDB() error {
 		return err
 	}
 
-	// Ensure required extensions are available.
 	if err := db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";").Error; err != nil {
 		return err
 	}
@@ -89,7 +88,6 @@ func (a *app) setDB() error {
 			return err
 		}
 	*/
-	// Apply database migrations for hotel-related models.
 	if err := db.AutoMigrate(
 		&types.Hotel{},
 		&types.Room{},
@@ -108,17 +106,14 @@ func NewApp(cfg config.Config) (App, error) {
 		cfg: cfg,
 	}
 
-	// Initialize the database connection
 	if err := a.setDB(); err != nil {
 		return nil, err
 	}
 
-	// Initialize Redis if needed
 	if err := a.setRedis(); err != nil {
 		return nil, err
 	}
 
-	// Connect to RabbitMQ
 	conn, channel, err := messaging.ConnectToRabbitMQ()
 	if err != nil {
 		log.Fatalf("Failed to connect to RabbitMQ: %v", err)

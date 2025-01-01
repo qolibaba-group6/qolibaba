@@ -1,12 +1,16 @@
+// internal/user/port/user.go
 package port
 
 import (
-	"context"
-	"qolibaba/internal/user/domain"
+	"github.com/ehsansobhani/project_structure-3/internal/user/domain"
+	"github.com/google/uuid"
 )
 
-type Repo interface {
-	Create(ctx context.Context, user domain.User) (domain.UserUUID, error)
-	GetByID(ctx context.Context, userID domain.UserUUID) (*domain.User, error)
-	GetByFilter(ctx context.Context, filter domain.UserFilter) (*domain.User, error)
+// UserRepository defines the interface for user repository operations
+type UserRepository interface {
+	RegisterUser(user *domain.User) error
+	GetUserByEmail(email string) (*domain.User, error)
+	GetUserProfile(id uuid.UUID) (*domain.User, error)
+	UpdateUserProfile(user *domain.User) error
+	DeleteUser(id uuid.UUID) error
 }

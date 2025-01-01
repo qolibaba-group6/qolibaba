@@ -1,30 +1,45 @@
 package travel_agencies
 
 import (
-	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/go-playground/validator/v10"
+	"github.com/redis/go-redis/v9"
 	"io"
+	"log"
 	"net/http"
 	"os"
-	"qolibaba/pkg/adapter/storage"
+	"qolibaba/internal/travel_agencies/port"
 	"qolibaba/pkg/adapter/storage/types"
 	"qolibaba/pkg/messaging"
-	"strconv"
 	"time"
 )
 
 type TravelAgencyService struct {
-	repository *storage.TravelAgencyRepository
+	repository port.Repo
 	messaging  *messaging.Messaging
+	redis      *redis.Client
+	validator  *validator.Validate
 }
 
-func NewTravelAgencyService(repository *storage.TravelAgencyRepository, messaging *messaging.Messaging) *TravelAgencyService {
+func NewTravelAgencyService(repository port.Repo, messaging *messaging.Messaging, redis *redis.Client) *TravelAgencyService {
 	return &TravelAgencyService{
 		repository: repository,
 		messaging:  messaging,
+		redis:      redis,
+		validator:  validator.New(),
 	}
+}
+
+type ServiceEvent struct {
+	EventType    string  `json:"event_type"`
+	ServiceID    uint    `json:"service_id"`
+	Name         string  `json:"name"`
+	GeneralPrice float64 `json:"general_price"`
+	TourPrice    float64 `json:"tour_price"`
+	Timestamp    string  `json:"timestamp"`
 }
 
 type Vehicle struct {
@@ -49,8 +64,17 @@ func (s *TravelAgencyService) RegisterNewAgency(agency *types.TravelAgency) (*ty
 
 // GetAllHotelsAndVehicles fetches all hotels and vehicles for offering a new tour
 func (s *TravelAgencyService) GetAllHotelsAndVehicles() (map[string]interface{}, error) {
+	cacheKey := "hotels_and_vehicles_data"
+	cachedData, err := s.redis.Get(context.Background(), cacheKey).Result()
+	if err == nil && cachedData != "" {
+		var cachedResponse map[string]interface{}
+		err := json.Unmarshal([]byte(cachedData), &cachedResponse)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode cached data: %v", err)
+		}
+		return cachedResponse, nil
+	}
 	hotelServiceURL := fmt.Sprintf("%s/api/v1/hotels/get-all", os.Getenv("HOTEL_SERVICE_URL"))
-
 	req, err := http.NewRequest(http.MethodGet, hotelServiceURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request to hotel service: %v", err)
@@ -64,7 +88,7 @@ func (s *TravelAgencyService) GetAllHotelsAndVehicles() (map[string]interface{},
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
-
+			fmt.Println("Error closing response body:", err)
 		}
 	}(resp.Body)
 
@@ -83,105 +107,89 @@ func (s *TravelAgencyService) GetAllHotelsAndVehicles() (map[string]interface{},
 		{ID: 2, Name: "Vehicle B", Type: "Train"},
 	}
 
-	return map[string]interface{}{
+	responseData := map[string]interface{}{
 		"hotels":   hotels,
 		"vehicles": vehicles,
-	}, nil
+	}
+
+	cacheData, err := json.Marshal(responseData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal data for caching: %v", err)
+	}
+
+	startTime := 7 * 24 * time.Hour
+	err = s.redis.Set(context.Background(), cacheKey, cacheData, startTime).Err()
+	if err != nil {
+		return nil, fmt.Errorf("failed to cache data in Redis: %v", err)
+	}
+
+	return responseData, nil
 }
 
 // OfferTour handles the logic for offering a new tour
-func (s *TravelAgencyService) OfferTour(userID uint, roomID uint, startTime, endTime time.Time, totalPrice float64, goingTransferVehicleID, returnTransferVehicleID, hotelID uint) (*types.TourBooking, error) {
-	if startTime.After(endTime) {
-		return nil, errors.New("start time cannot be after end time")
+func (s *TravelAgencyService) OfferTour(tour *types.Tour) (*types.Tour, error) {
+
+	if err := s.validator.Struct(tour); err != nil {
+		log.Printf("Validation failed: %v", err)
+		return nil, fmt.Errorf("validation error: %v", err)
 	}
 
-	hotelServiceURL := fmt.Sprintf("%s/api/v1/rooms/book-hotel", os.Getenv("HOTEL_SERVICE_URL"))
-	bookingData := map[string]interface{}{
-		"room_id":     roomID,
-		"user_id":     userID,
-		"start_time":  startTime,
-		"end_time":    endTime,
-		"total_price": totalPrice,
-		"status":      "pending",
-	}
+	hotelKey := fmt.Sprintf("hotel:%d", tour.HotelID)
+	vehicleGoingKey := fmt.Sprintf("vehicle:%d", tour.GoingVehicleID)
+	vehicleReturnKey := fmt.Sprintf("vehicle:%d", tour.ReturnVehicleID)
 
-	bookingJSON, _ := json.Marshal(bookingData)
-
-	req, err := http.NewRequest(http.MethodPost, hotelServiceURL, bytes.NewBuffer(bookingJSON))
+	hotel, err := s.redis.Get(context.Background(), hotelKey).Result()
 	if err != nil {
-		return nil, fmt.Errorf("error creating request to hotel service: %v", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("error connecting to hotel service: %v", err)
-	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-
+		if errors.Is(err, redis.Nil) {
+			return nil, fmt.Errorf("hotel not found in Redis cache")
 		}
-	}(resp.Body)
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("failed to book hotel: %v", string(body))
+		return nil, fmt.Errorf("error checking hotel in Redis: %v", err)
 	}
+	log.Printf("Hotel found in Redis: %s", hotel)
 
-	var bookingResponse map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&bookingResponse); err != nil {
-		return nil, fmt.Errorf("error decoding hotel response: %v", err)
-	}
-
-	tour := &types.TourBooking{
-		UserID:                  userID,
-		RoomID:                  roomID,
-		GoingTransferVehicleID:  goingTransferVehicleID,
-		ReturnTransferVehicleID: returnTransferVehicleID,
-		HotelID:                 hotelID,
-		BookingDate:             time.Now(),
-		TotalPrice:              totalPrice,
-		BookingStatus:           "pending",
-		Confirmed:               false,
-	}
-
-	savedTour, err := s.repository.SaveTour(tour)
+	vehicleGoing, err := s.redis.Get(context.Background(), vehicleGoingKey).Result()
 	if err != nil {
-		return nil, fmt.Errorf("error saving tour: %v", err)
+		if errors.Is(err, redis.Nil) {
+			return nil, fmt.Errorf("going vehicle not found in Redis cache")
+		}
+		return nil, fmt.Errorf("error checking going vehicle in Redis: %v", err)
+	}
+	log.Printf("Going vehicle found in Redis: %s", vehicleGoing)
+
+	vehicleReturn, err := s.redis.Get(context.Background(), vehicleReturnKey).Result()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return nil, fmt.Errorf("return vehicle not found in Redis cache")
+		}
+		return nil, fmt.Errorf("error checking return vehicle in Redis: %v", err)
+	}
+	log.Printf("Return vehicle found in Redis: %s", vehicleReturn)
+
+	tour.StartDate = time.Now().Add(1 * time.Hour)
+	tour.EndDate = time.Now().Add(1 * time.Hour).Add(2 * time.Hour)
+	if _, err := s.repository.SaveTour(tour); err != nil {
+		log.Printf("Error saving tour: %v", err)
+		return nil, err
 	}
 
-	return savedTour, nil
+	return tour, nil
 }
 
 func (s *TravelAgencyService) CreateTourBooking(booking *types.TourBooking) (*types.TourBooking, error) {
-	// Validate input
-	if booking.StartTime.After(booking.EndTime) {
-		return nil, fmt.Errorf("start time must be before end time")
-	}
-
-	// Calculate total price
-	totalDays := booking.EndTime.Sub(booking.StartTime).Hours() / 24
-	booking.TotalPrice = booking.PerDayPrice * totalDays
-
-	// Create a new tour booking
-	newBooking, err := s.repository.CreateTourBooking(booking)
+	tour, err := s.repository.GetTourByID(booking.TourID)
 	if err != nil {
-		return nil, fmt.Errorf("error creating tour booking: %v", err)
+		return nil, fmt.Errorf("error fetching tour: %v", err)
 	}
 
-	// Generate claim
 	claim := types.Claim{
 		BuyerUserID:  booking.UserID,
-		SellerUserID: booking.TourID,
-		Amount:       booking.TotalPrice,
+		SellerUserID: tour.AgencyID,
+		Amount:       tour.TotalPrice,
 		ClaimType:    "tour",
-		ClaimDetails: fmt.Sprintf("Tour booking from %s to %s", booking.StartTime.Format("2006-01-02"), booking.EndTime.Format("2006-01-02")),
+		ClaimDetails: fmt.Sprintf("Booking for tour %d from %s to %s", booking.TourID, tour.StartDate, tour.EndDate),
 		Status:       "pending",
 	}
 
-	// Serialize claim to JSON
 	claimData, err := json.Marshal(claim)
 	if err != nil {
 		return nil, fmt.Errorf("error marshalling claim: %v", err)
@@ -192,20 +200,51 @@ func (s *TravelAgencyService) CreateTourBooking(booking *types.TourBooking) (*ty
 		return nil, fmt.Errorf("error sending claim to bank: %v", err)
 	}
 
-	// Convert claim ID to uint
-	claimIDUint, err := strconv.ParseUint(claimID, 10, 32)
+	booking.ClaimID = claimID
+	booking.BookingStatus = "pending"
+	booking.Confirmed = false
+
+	newBooking, err := s.repository.CreateTourBooking(booking)
 	if err != nil {
-		return nil, fmt.Errorf("error converting claimID to uint: %v", err)
+		return nil, fmt.Errorf("error saving tour booking: %v", err)
 	}
 
-	claimIDPointer := uint(claimIDUint)
-	newBooking.ClaimID = &claimIDPointer
+	return newBooking, nil
+}
 
-	// Update booking with claim ID
-	updatedBooking, err := s.repository.UpdateTourBooking(newBooking)
+func (s *TravelAgencyService) ConfirmTourBooking(bookingID uint) (*types.TourBooking, error) {
+	booking, err := s.repository.ConfirmBooking(bookingID)
 	if err != nil {
-		return nil, fmt.Errorf("error updating booking with claim ID: %v", err)
+		return nil, fmt.Errorf("error confirming booking: %v", err)
 	}
 
-	return updatedBooking, nil
+	if booking.ClaimID == nil {
+		return nil, fmt.Errorf("no claimId associated with this booking")
+	}
+
+	bankServiceURL := fmt.Sprintf("http://bank-service:7070/api/v1/bank/process-confirmed-claim/%d", booking.ClaimID)
+	req, err := http.NewRequest(http.MethodPost, bankServiceURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request to bank service: %v", err)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error sending confirmation to bank service: %v", err)
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Printf("error closing response body: %v", err)
+		}
+	}(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("bank service returned status: %v", resp.Status)
+	}
+
+	log.Printf("Successfully confirmed claim with ID: %d in Bank Service", *booking.ClaimID)
+
+	return booking, nil
 }

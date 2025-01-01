@@ -29,8 +29,9 @@ type ServerConfig struct {
 }
 
 type RedisConfig struct {
-	Host string `json:"host"`
-	Port uint   `json:"port"`
+	Host     string `json:"host"`
+	Port     uint   `json:"port"`
+	Password string
 }
 
 type SuperAdmin struct {

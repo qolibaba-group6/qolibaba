@@ -42,7 +42,8 @@ type Room struct {
 	gorm.Model
 	HotelID           uint       `gorm:"not null" json:"hotel_id"`
 	Type              RoomType   `gorm:"type:room_type;not null" validate:"required,oneof=single double suite" json:"type"`
-	Price             float64    `gorm:"type:decimal(10,2);not null" validate:"required,gt=0" json:"price"`
+	GeneralPrice      float64    `gorm:"type:decimal(10,2);not null" json:"general_price"`
+	TourPrice         float64    `gorm:"type:decimal(10,2);not null" json:"tour_price"`
 	Capacity          int        `gorm:"not null" validate:"required,gt=0" json:"capacity"`
 	Features          string     `gorm:"type:text" json:"features"`
 	Duration          int        `gorm:"not null" validate:"required,oneof=12 24" json:"duration"`

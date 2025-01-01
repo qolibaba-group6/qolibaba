@@ -1,17 +1,19 @@
 package http
 
 import (
+	"fmt"
 	"github.com/gofiber/fiber/v2"
-	"qolibaba/internal/travel_agencies"
+	"net/http"
+	"qolibaba/internal/travel_agencies/port"
 	"qolibaba/pkg/adapter/storage/types"
-	"time"
+	"strconv"
 )
 
 type TravelAgencyHandler struct {
-	TravelAgencyService *travel_agencies.TravelAgencyService
+	TravelAgencyService port.Service
 }
 
-func NewTravelAgencyHandler(service *travel_agencies.TravelAgencyService) *TravelAgencyHandler {
+func NewTravelAgencyHandler(service port.Service) *TravelAgencyHandler {
 	return &TravelAgencyHandler{TravelAgencyService: service}
 }
 
@@ -43,29 +45,60 @@ func (h *TravelAgencyHandler) GetAllHotelsAndVehiclesHandler(c *fiber.Ctx) error
 	return c.Status(fiber.StatusOK).JSON(data)
 }
 
-func (h *TravelAgencyHandler) OfferTourHandler(c *fiber.Ctx) error {
-	var input struct {
-		UserID                  uint      `json:"user_id"`
-		RoomID                  uint      `json:"room_id"`
-		StartTime               time.Time `json:"start_time"`
-		EndTime                 time.Time `json:"end_time"`
-		TotalPrice              float64   `json:"total_price"`
-		GoingTransferVehicleID  uint      `json:"going_transfer_vehicle_id"`
-		ReturnTransferVehicleID uint      `json:"return_transfer_vehicle_id"`
-		HotelID                 uint      `json:"hotel_id"`
+func (h *TravelAgencyHandler) CreateTour(c *fiber.Ctx) error {
+	var tourData types.Tour
+
+	if err := c.BodyParser(&tourData); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": fmt.Sprintf("Invalid request body: %v", err),
+		})
 	}
 
-	if err := c.BodyParser(&input); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
-	}
-
-	tour, err := h.TravelAgencyService.OfferTour(
-		input.UserID, input.RoomID, input.StartTime, input.EndTime,
-		input.TotalPrice, input.GoingTransferVehicleID, input.ReturnTransferVehicleID, input.HotelID,
-	)
+	tour, err := h.TravelAgencyService.OfferTour(&tourData)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"error": fmt.Sprintf("Failed to create tour: %v", err),
+		})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"tour": tour})
+	return c.Status(http.StatusCreated).JSON(fiber.Map{
+		"message": "Tour created successfully",
+		"tour":    tour,
+	})
+}
+
+func (h *TravelAgencyHandler) CreateBooking(c *fiber.Ctx) error {
+	var bookingData types.TourBooking
+
+	if err := c.BodyParser(&bookingData); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"error": fmt.Sprintf("Invalid request body: %v", err),
+		})
+	}
+
+	booking, err := h.TravelAgencyService.CreateTourBooking(&bookingData)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error": fmt.Sprintf("Failed to create booking: %v", err),
+		})
+	}
+
+	return c.Status(201).JSON(fiber.Map{
+		"message": "Booking created successfully",
+		"booking": booking,
+	})
+}
+
+func (h *TravelAgencyHandler) ConfirmTourBooking(c *fiber.Ctx) error {
+	bookingID, err := strconv.ParseUint(c.Params("bookingID"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid booking ID"})
+	}
+
+	booking, err := h.TravelAgencyService.ConfirmTourBooking(uint(bookingID))
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": fmt.Sprintf("Error confirming tour booking: %v", err)})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(booking)
 }

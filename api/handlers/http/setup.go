@@ -8,6 +8,7 @@ import (
 	"qolibaba/app"
 	"qolibaba/app/bank"
 	"qolibaba/app/hotel"
+	"qolibaba/app/travel_agency"
 	"qolibaba/config"
 )
 
@@ -19,7 +20,6 @@ func Run(appContainer app.App, cfg config.Config) error {
 	registerAuthAPI(appContainer, cfg.Server, api)
 	registerAdminAPI(api, cfg)
 	registerRoutemapAPI(api, cfg)
-
 	return router.Listen(fmt.Sprintf(":%d", cfg.Server.HttpPort))
 }
 
@@ -39,6 +39,16 @@ func RunBank(appContainer bank.App, serverCfg config.ServerConfig) error {
 	api := router.Group("/api/v1", setUserContext)
 
 	registerBankAPI(appContainer, api)
+
+	return router.Listen(fmt.Sprintf(":%d", serverCfg.HttpPort))
+}
+
+func RunAgencies(appContainer travel_agency.App, serverCfg config.ServerConfig) error {
+	router := fiber.New()
+
+	api := router.Group("/api/v1", setUserContext)
+
+	registerAgencyAPI(appContainer, api)
 
 	return router.Listen(fmt.Sprintf(":%d", serverCfg.HttpPort))
 }
@@ -107,4 +117,14 @@ func registerBankAPI(appContainer bank.App, router fiber.Router) {
 	router.Post("/bank/charge-wallet", bankHandler.ChargeWalletHandler)
 	router.Post("/bank/process-unconfirmed-claim", bankHandler.ProcessUnconfirmedClaim)
 	router.Post("/bank/process-confirmed-claim/:claim_id", bankHandler.ProcessConfirmedClaimHandler)
+}
+
+func registerAgencyAPI(appContainer travel_agency.App, router fiber.Router) {
+	travelAgencies := appContainer.TravelAgency()
+
+	agenciesHandler := NewTravelAgencyHandler(travelAgencies)
+	router.Post("/agency/register", agenciesHandler.RegisterNewAgency)
+	router.Post("/agency/get-all-services", agenciesHandler.GetAllHotelsAndVehiclesHandler)
+	router.Post("/tour/booking", agenciesHandler.CreateBooking)
+	router.Post("/bank/process-confirmed-claim/:claim_id", agenciesHandler.ProcessConfirmedClaimHandler)
 }

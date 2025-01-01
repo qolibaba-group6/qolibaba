@@ -11,7 +11,6 @@ import (
 	"qolibaba/pkg/adapter/storage/types"
 	"qolibaba/pkg/messaging"
 	"regexp"
-	"strconv"
 )
 
 type service struct {
@@ -84,7 +83,7 @@ func (s *service) CreateOrUpdateRoom(room *types.Room) (*types.Room, error) {
 		return nil, fmt.Errorf("validation failed: %v", err)
 	}
 
-	if room.Price <= 0 {
+	if room.TourPrice <= 0 && room.GeneralPrice <= 0 {
 		return nil, fmt.Errorf("price must be greater than zero")
 	}
 	if room.Capacity <= 0 {
@@ -136,7 +135,12 @@ func (s *service) CreateBooking(booking *types.Booking) (*types.Booking, error) 
 		return nil, fmt.Errorf("start time must be before end time")
 	}
 
-	totalPrice := room.Price * (booking.EndTime.Sub(booking.StartTime).Hours() / 24) // Assuming daily pricing
+	totalPrice := 0.0
+	if booking.IsReferred != nil {
+		totalPrice = room.TourPrice * (booking.EndTime.Sub(booking.StartTime).Hours() / float64(room.Duration))
+	} else {
+		totalPrice = room.GeneralPrice * (booking.EndTime.Sub(booking.StartTime).Hours() / float64(room.Duration))
+	}
 
 	booking.TotalPrice = &totalPrice
 
@@ -168,14 +172,7 @@ func (s *service) CreateBooking(booking *types.Booking) (*types.Booking, error) 
 		return nil, fmt.Errorf("error sending claim to bank: %v", err)
 	}
 
-	claimIDUint, err := strconv.ParseUint(claimID, 10, 32)
-	if err != nil {
-		return nil, fmt.Errorf("error converting claimID to uint: %v", err)
-	}
-
-	claimIDPointer := uint(claimIDUint)
-	newBooking.ClaimID = &claimIDPointer
-
+	newBooking.ClaimID = claimID
 	updatedBooking, err := s.hotelRepo.UpdateBooking(newBooking)
 	if err != nil {
 		return nil, fmt.Errorf("error updating booking with claim ID: %v", err)

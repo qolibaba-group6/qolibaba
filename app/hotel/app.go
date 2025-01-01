@@ -81,12 +81,10 @@ func NewApp(cfg config.Config) (App, error) {
 		cfg: cfg,
 	}
 
-	// Initialize database.
 	if err := a.setDB(); err != nil {
 		return nil, err
 	}
 
-	// Initialize the hotel service.
 	a.hotelService = hotels.NewService(storage.NewHotelRepo(a.db))
 
 	return a, nil

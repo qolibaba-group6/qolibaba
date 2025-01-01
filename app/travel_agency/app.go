@@ -111,7 +111,6 @@ func NewApp(cfg config.Config) (App, error) {
 		}
 	}(channel)
 
-	// Initialize Messaging client
 	messagingClient := messaging.NewMessaging(channel, a.bankService, a.redisClient, a.travelService)
 
 	// Set up database connection

@@ -1,20 +1,28 @@
 package bank
 
 import (
+	"context"
+	"fmt"
+	"github.com/redis/go-redis/v9"
+	"github.com/streadway/amqp"
 	"gorm.io/gorm"
 	"log"
 	"qolibaba/config"
 	"qolibaba/internal/bank"
 	"qolibaba/internal/bank/port"
+	agenciesPort "qolibaba/internal/travel_agencies/port"
 	"qolibaba/pkg/adapter/storage"
 	"qolibaba/pkg/adapter/storage/types"
+	"qolibaba/pkg/messaging"
 	"qolibaba/pkg/postgres"
 )
 
 type app struct {
-	db          *gorm.DB
-	cfg         config.Config
-	bankService port.Service
+	db              *gorm.DB
+	cfg             config.Config
+	bankService     port.Service
+	agenciesService agenciesPort.Service
+	redisClient     *redis.Client
 }
 
 // DB provides access to the database instance.
@@ -30,6 +38,23 @@ func (a *app) Config() config.Config {
 // BankService provides access to the bank service implementation.
 func (a *app) BankService() port.Service {
 	return a.bankService
+}
+
+// setRedis initializes the Redis connection.
+func (a *app) setRedis() error {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%d", a.cfg.Redis.Host, a.cfg.Redis.Port),
+		Password: a.cfg.Redis.Password,
+		DB:       0,
+	})
+
+	ctx := context.Background()
+	if _, err := rdb.Ping(ctx).Result(); err != nil {
+		return err
+	}
+
+	a.redisClient = rdb
+	return nil
 }
 
 // setDB initializes the database connection and applies migrations.
@@ -78,7 +103,31 @@ func NewApp(cfg config.Config) (App, error) {
 		return nil, err
 	}
 
-	a.bankService = bank.NewService(storage.NewBankRepo(a.db))
+	if err := a.setRedis(); err != nil {
+		return nil, err
+	}
+
+	conn, channel, err := messaging.ConnectToRabbitMQ()
+	if err != nil {
+		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
+	}
+	defer func(conn *amqp.Connection) {
+		err := conn.Close()
+		if err != nil {
+
+		}
+	}(conn)
+	defer func(channel *amqp.Channel) {
+		err := channel.Close()
+		if err != nil {
+
+		}
+	}(channel)
+
+	messagingClient := messaging.NewMessaging(channel, a.bankService, a.redisClient, a.agenciesService)
+	go messagingClient.StartClaimConsumer()
+
+	a.bankService = bank.NewService(storage.NewBankRepo(a.db), messagingClient)
 
 	return a, nil
 }

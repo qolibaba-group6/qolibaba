@@ -5,17 +5,20 @@ import (
 	"github.com/go-playground/validator/v10"
 	"qolibaba/internal/bank/port"
 	"qolibaba/pkg/adapter/storage/types"
+	"qolibaba/pkg/messaging"
 )
 
 type service struct {
-	bankRepo port.Repo
-	validate *validator.Validate
+	bankRepo  port.Repo
+	validate  *validator.Validate
+	messaging *messaging.Messaging
 }
 
-func NewService(repo port.Repo) port.Service {
+func NewService(repo port.Repo, messaging *messaging.Messaging) port.Service {
 	return &service{
-		bankRepo: repo,
-		validate: validator.New(),
+		bankRepo:  repo,
+		validate:  validator.New(),
+		messaging: messaging,
 	}
 }
 

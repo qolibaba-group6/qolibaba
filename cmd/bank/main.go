@@ -46,9 +46,7 @@ func main() {
 		}
 	}(rabbitMQChannel)
 
-	rabbitMQConsumer := messaging.NewMessaging(rabbitMQChannel, bankApp.BankService())
-
-	go rabbitMQConsumer.StartClaimConsumer()
+	bankApp.BankService()
 
 	err = http.RunBank(bankApp, cfg.Server)
 	if err != nil {

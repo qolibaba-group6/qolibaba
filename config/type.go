@@ -43,3 +43,10 @@ type RoutemapServiceConfig struct {
 	Port uint   `json:"port"`
 	Host string `json:"host"`
 }
+
+type RabbitMQServer struct {
+	Host     string `json:"host"`
+	Port     uint   `json:"port"`
+	User     string `json:"user"`
+	Password string `json:"password"`
+}

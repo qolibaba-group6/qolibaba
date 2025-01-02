@@ -1,6 +1,7 @@
 services:
   qolibaba-api:
     container_name: qolibaba-api
+    restart: always
     build:
       context: .
       dockerfile: ./build/Dockerfile
@@ -14,6 +15,7 @@ services:
 
   routemap-service:
     container_name: routemap-service
+    restart: always
     build:
       context: .
       dockerfile: ./build/routemap/Dockerfile
@@ -24,6 +26,32 @@ services:
     depends_on:
       - qolibaba-db
 
+
+
+  rabbitmq:
+    image: rabbitmq:3-management  # Includes RabbitMQ with a management UI
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"    # RabbitMQ default port
+      - "15672:15672"  # Management UI port
+    environment:
+      RABBITMQ_DEFAULT_USER: guest  
+      RABBITMQ_DEFAULT_PASS: guest 
+
+  bank-service:
+    container_name: bank-service
+    restart: always
+    build:
+      context: .
+      dockerfile: ./build/bank/Dockerfile
+    ports:
+     - "${BANK_PORT}:8080"
+    volumes:
+      - ./config.json:/app/config.json
+    depends_on:
+      - qolibaba-db
+      - rabbitmq
 
   qolibaba-db:
     container_name: qolibaba-db

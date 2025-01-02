@@ -13,6 +13,16 @@
         "authExpMin": 30,
         "authExpRefreshMin": 180
     },
+    "redis": {
+        "host": "",
+        "port": 0
+    },
+    "rabbitMQ": {
+        "host": "rabbitmq",
+        "port": 5672,
+        "user": "guest",
+        "password": "guest"
+    },
     "superAdmin": {
         "email": "admin@example.com",
         "password": "password123"
@@ -23,5 +33,8 @@
     "routemapService": {
         "port": 2000,
         "host": "routemap-service"
+    },
+    "bankService": {
+        "port": 2001
     }
 }

@@ -42,7 +42,7 @@ type Transaction struct {
 	Status          string     `gorm:"type:varchar(10);not null" json:"status"`
 	Description     string     `gorm:"type:text" json:"description"`
 	CompletedAt     *time.Time `gorm:"default:null" json:"completed_at"`
-	ClaimID         uint       `gorm:"not null" json:"claim_id"`
+	ClaimID         *uint      `gorm:"default:null" json:"claim_id"`
 
 	Wallet Wallet `gorm:"foreignKey:WalletID" json:"wallet"`
 	Claim  Claim  `gorm:"foreignKey:ClaimID" json:"claim"`

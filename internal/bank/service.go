@@ -5,11 +5,13 @@ import (
 	"github.com/go-playground/validator/v10"
 	"qolibaba/internal/bank/port"
 	"qolibaba/pkg/adapter/storage/types"
+	"qolibaba/pkg/messaging"
 )
 
 type service struct {
-	bankRepo port.Repo
-	validate *validator.Validate
+	bankRepo  port.Repo
+	validate  *validator.Validate
+	messaging *messaging.Messaging
 }
 
 func NewService(repo port.Repo) port.Service {
@@ -61,25 +63,21 @@ func (s *service) ProcessUnconfirmedClaim(claim *types.Claim) (*types.Claim, err
 
 	err := s.bankRepo.Withdrawal(claim.BuyerUserID, bankWalletID, claim.Amount)
 	if err != nil {
-		failedClaim, _ := s.handleClaim(claim, string(types.StatusFailed), fmt.Errorf("withdrawal error: %v", err))
+		claim.Status = string(types.StatusFailed)
+		failedClaim, _ := s.handleClaim(claim)
 		return failedClaim, nil
 	}
 
 	withdrawTransaction, err := s.bankRepo.CreateTransaction(claim.BuyerUserID, claim.Amount, string(types.TransactionTypeWithdrawal), "claim withdrawal to bank")
 	if err != nil {
-		failedClaim, _ := s.handleClaim(claim, string(types.StatusFailed), fmt.Errorf("withdrawal error: %v", err))
+		claim.Status = string(types.StatusFailed)
+		failedClaim, _ := s.handleClaim(claim)
 		return failedClaim, nil
 	}
 
-	depositTransaction, err := s.bankRepo.CreateTransaction(bankWalletID, claim.Amount, string(types.TransactionTypeDeposit), "claim deposit from buyer")
-	if err != nil {
-		failedClaim, _ := s.handleClaim(claim, string(types.StatusFailed), fmt.Errorf("withdrawal error: %v", err))
-		return failedClaim, nil
-	}
-
-	claim.Transactions = []types.Transaction{*withdrawTransaction, *depositTransaction}
-	claim.Status = string(types.StatusPending)
-	updatedClaim, err := s.handleClaim(claim, string(types.StatusFailed), fmt.Errorf("withdrawal error: %v", err))
+	claim.Transactions = []types.Transaction{*withdrawTransaction}
+	claim.Status = string(types.BookingStatusPending)
+	updatedClaim, err := s.handleClaim(claim)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save claim with pending status: %v", err)
 	}
@@ -93,31 +91,30 @@ func (s *service) ProcessConfirmedClaim(claimID uint) (*types.Claim, error) {
 	}
 
 	if claim.Amount <= 0 {
-		return s.handleClaim(claim, string(types.StatusFailed), fmt.Errorf("claim amount must be greater than zero"))
+		return s.handleClaim(claim)
 	}
 	if claim.BuyerUserID == 0 || claim.SellerUserID == 0 {
-		return s.handleClaim(claim, string(types.StatusFailed), fmt.Errorf("buyer and seller user IDs must be valid"))
+		claim.Status = string(types.StatusFailed)
+		return s.handleClaim(claim)
 	}
 
 	const bankWalletID = 1
 
 	err = s.bankRepo.Withdrawal(bankWalletID, claim.SellerUserID, claim.Amount)
 	if err != nil {
-		return s.handleClaim(claim, string(types.StatusFailed), fmt.Errorf("withdrawal error: %v", err))
+		claim.Status = string(types.StatusFailed)
+		return s.handleClaim(claim)
 	}
 
 	withdrawTransaction, err := s.bankRepo.CreateTransaction(bankWalletID, claim.Amount, string(types.TransactionTypeWithdrawal), "claim withdrawal to seller")
 	if err != nil {
-		return s.handleClaim(claim, string(types.StatusFailed), fmt.Errorf("transaction creation error: %v", err))
+		claim.Status = string(types.StatusFailed)
+		return s.handleClaim(claim)
 	}
 
-	depositTransaction, err := s.bankRepo.CreateTransaction(claim.SellerUserID, claim.Amount, string(types.TransactionTypeDeposit), "claim deposit from bank")
-	if err != nil {
-		return s.handleClaim(claim, string(types.StatusFailed), fmt.Errorf("transaction creation error: %v", err))
-	}
-
-	claim.Transactions = []types.Transaction{*withdrawTransaction, *depositTransaction}
-	updatedClaim, err := s.handleClaim(claim, string(types.StatusPaid), nil)
+	claim.Transactions = []types.Transaction{*withdrawTransaction}
+	claim.Status = string(types.StatusCompleted)
+	updatedClaim, err := s.handleClaim(claim)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update claim status: %v", err)
 	}
@@ -125,11 +122,10 @@ func (s *service) ProcessConfirmedClaim(claimID uint) (*types.Claim, error) {
 	return updatedClaim, nil
 }
 
-func (s *service) handleClaim(claim *types.Claim, status string, failureReason error) (*types.Claim, error) {
-	claim.Status = status
+func (s *service) handleClaim(claim *types.Claim) (*types.Claim, error) {
 	claim, err := s.bankRepo.UpsertClaim(claim, claim.Status)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save claim")
 	}
-	return claim, failureReason
+	return claim, nil
 }

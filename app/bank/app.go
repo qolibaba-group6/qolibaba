@@ -1,20 +1,26 @@
 package bank
 
 import (
+	"context"
+	"fmt"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"log"
 	"qolibaba/config"
 	"qolibaba/internal/bank"
 	"qolibaba/internal/bank/port"
+	agenciesPort "qolibaba/internal/travel_agencies/port"
 	"qolibaba/pkg/adapter/storage"
 	"qolibaba/pkg/adapter/storage/types"
 	"qolibaba/pkg/postgres"
 )
 
 type app struct {
-	db          *gorm.DB
-	cfg         config.Config
-	bankService port.Service
+	db              *gorm.DB
+	cfg             config.Config
+	bankService     port.Service
+	agenciesService agenciesPort.Service
+	redisClient     *redis.Client
 }
 
 // DB provides access to the database instance.
@@ -30,6 +36,23 @@ func (a *app) Config() config.Config {
 // BankService provides access to the bank service implementation.
 func (a *app) BankService() port.Service {
 	return a.bankService
+}
+
+// setRedis initializes the Redis connection.
+func (a *app) setRedis() error {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%d", a.cfg.Redis.Host, a.cfg.Redis.Port),
+		Password: a.cfg.Redis.Password,
+		DB:       0,
+	})
+
+	ctx := context.Background()
+	if _, err := rdb.Ping(ctx).Result(); err != nil {
+		return err
+	}
+
+	a.redisClient = rdb
+	return nil
 }
 
 // setDB initializes the database connection and applies migrations.
@@ -77,7 +100,6 @@ func NewApp(cfg config.Config) (App, error) {
 		log.Printf("Error initializing database: %v", err)
 		return nil, err
 	}
-
 	a.bankService = bank.NewService(storage.NewBankRepo(a.db))
 
 	return a, nil

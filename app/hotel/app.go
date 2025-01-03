@@ -1,19 +1,30 @@
 package hotel
 
 import (
+	"context"
+	"fmt"
+	"github.com/gofiber/fiber/v2/log"
+	"github.com/redis/go-redis/v9"
+	"github.com/streadway/amqp"
 	"gorm.io/gorm"
 	"qolibaba/config"
+	bankPort "qolibaba/internal/bank/port"
 	"qolibaba/internal/hotels"
 	"qolibaba/internal/hotels/port"
+	agenciesPort "qolibaba/internal/travel_agencies/port"
 	"qolibaba/pkg/adapter/storage"
 	"qolibaba/pkg/adapter/storage/types"
+	"qolibaba/pkg/messaging"
 	"qolibaba/pkg/postgres"
 )
 
 type app struct {
-	db           *gorm.DB
-	cfg          config.Config
-	hotelService port.Service
+	db              *gorm.DB
+	cfg             config.Config
+	bankService     bankPort.Service
+	agenciesService agenciesPort.Service
+	hotelService    port.Service
+	redisClient     *redis.Client
 }
 
 // DB provides access to the database instance.
@@ -31,6 +42,23 @@ func (a *app) HotelService() port.Service {
 	return a.hotelService
 }
 
+// setRedis initializes the Redis connection.
+func (a *app) setRedis() error {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%d", a.cfg.Redis.Host, a.cfg.Redis.Port),
+		Password: a.cfg.Redis.Password,
+		DB:       0,
+	})
+
+	ctx := context.Background()
+	if _, err := rdb.Ping(ctx).Result(); err != nil {
+		return err
+	}
+
+	a.redisClient = rdb
+	return nil
+}
+
 // setDB initializes the database connection and applies migrations.
 func (a *app) setDB() error {
 	db, err := postgres.NewPsqlGormConnection(postgres.DBConnOptions{
@@ -45,7 +73,6 @@ func (a *app) setDB() error {
 		return err
 	}
 
-	// Ensure required extensions are available.
 	if err := db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";").Error; err != nil {
 		return err
 	}
@@ -62,7 +89,6 @@ func (a *app) setDB() error {
 			return err
 		}
 	*/
-	// Apply database migrations for hotel-related models.
 	if err := db.AutoMigrate(
 		&types.Hotel{},
 		&types.Room{},
@@ -81,13 +107,47 @@ func NewApp(cfg config.Config) (App, error) {
 		cfg: cfg,
 	}
 
-	// Initialize database.
 	if err := a.setDB(); err != nil {
 		return nil, err
 	}
 
-	// Initialize the hotel service.
-	a.hotelService = hotels.NewService(storage.NewHotelRepo(a.db))
+	if err := a.setRedis(); err != nil {
+		return nil, err
+	}
+
+	conn, channel, err := messaging.ConnectToRabbitMQ()
+	if err != nil {
+		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
+	}
+	defer func(conn *amqp.Connection) {
+		err := conn.Close()
+		if err != nil {
+
+		}
+	}(conn)
+	defer func(channel *amqp.Channel) {
+		err := channel.Close()
+		if err != nil {
+
+		}
+	}(channel)
+
+	messagingClient := messaging.NewMessaging(channel, a.redisClient)
+
+	go func() {
+		err := messagingClient.StartConsumer(messaging.ClaimQueue, messagingClient.HandleClaim)
+		if err != nil {
+
+		}
+	}()
+	go func() {
+		err := messagingClient.StartConsumer(messaging.TourQueue, messagingClient.HandleHotelOffer)
+		if err != nil {
+
+		}
+	}()
+
+	a.hotelService = hotels.NewService(storage.NewHotelRepo(a.db), messagingClient)
 
 	return a, nil
 }

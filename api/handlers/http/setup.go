@@ -3,13 +3,14 @@ package http
 import (
 	"context"
 	"fmt"
+	"github.com/gofiber/fiber/v2"
 	"qolibaba/api/service"
 	"qolibaba/app"
 	"qolibaba/app/bank"
 	"qolibaba/app/hotel"
+	"qolibaba/app/travel_agency"
 	"qolibaba/config"
 	userDomain "qolibaba/internal/user/domain"
-
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -21,7 +22,6 @@ func Run(appContainer app.App, cfg config.Config) error {
 	registerAuthAPI(appContainer, cfg.Server, api)
 	registerAdminAPI(appContainer, api, cfg)
 	registerRoutemapAPI(api, cfg)
-
 	return router.Listen(fmt.Sprintf(":%d", cfg.Server.HttpPort))
 }
 
@@ -32,7 +32,7 @@ func RunHotel(appContainer hotel.App, serverCfg config.ServerConfig) error {
 
 	registerHotelAPI(appContainer, api)
 
-	return router.Listen(fmt.Sprintf(":%d", serverCfg.HttpPort))
+	return router.Listen(fmt.Sprintf(":%d", serverCfg.HotelHttpPort))
 }
 
 func RunBank(appContainer bank.App, serverCfg config.ServerConfig) error {
@@ -42,7 +42,17 @@ func RunBank(appContainer bank.App, serverCfg config.ServerConfig) error {
 
 	registerBankAPI(appContainer, api)
 
-	return router.Listen(fmt.Sprintf(":%d", serverCfg.HttpPort))
+	return router.Listen(fmt.Sprintf(":%d", serverCfg.BankHttpPort))
+}
+
+func RunAgencies(appContainer travel_agency.App, serverCfg config.ServerConfig) error {
+	router := fiber.New()
+
+	api := router.Group("/api/v1", setUserContext)
+
+	registerAgencyAPI(appContainer, api)
+
+	return router.Listen(fmt.Sprintf(":%d", serverCfg.TravelHttpPort))
 }
 
 func registerAuthAPI(appContainer app.App, cfg config.ServerConfig, router fiber.Router) {
@@ -64,17 +74,17 @@ func registerAdminAPI(appContainer app.App, router fiber.Router, cfg config.Conf
 
 	adminRouter.Post("/terminal",
 		authMiddleware,
-		rolesAccessMiddleware([]string{userDomain.RoleAdmin}), 
+		rolesAccessMiddleware([]string{userDomain.RoleAdmin}),
 		CreateTerminal(cfg.RoutemapService),
 	)
 	adminRouter.Post("/route",
 		authMiddleware,
-		rolesAccessMiddleware([]string{userDomain.RoleAdmin}), 
+		rolesAccessMiddleware([]string{userDomain.RoleAdmin}),
 		CreateRoute(cfg.RoutemapService),
 	)
-	adminRouter.Put("/users/:id/role", 
+	adminRouter.Put("/users/:id/role",
 		authMiddleware,
-		rolesAccessMiddleware([]string{userDomain.RoleAdmin}), 
+		rolesAccessMiddleware([]string{userDomain.RoleAdmin}),
 		UpdateRole(userService),
 	)
 }
@@ -119,4 +129,14 @@ func registerBankAPI(appContainer bank.App, router fiber.Router) {
 	router.Post("/bank/charge-wallet", bankHandler.ChargeWalletHandler)
 	router.Post("/bank/process-unconfirmed-claim", bankHandler.ProcessUnconfirmedClaim)
 	router.Post("/bank/process-confirmed-claim/:claim_id", bankHandler.ProcessConfirmedClaimHandler)
+}
+
+func registerAgencyAPI(appContainer travel_agency.App, router fiber.Router) {
+	travelAgencies := appContainer.TravelAgency()
+
+	agenciesHandler := NewTravelAgencyHandler(travelAgencies)
+	router.Post("/agency/register", agenciesHandler.RegisterNewAgency)
+	router.Get("/agency/get-all-services", agenciesHandler.GetAllHotelsAndVehiclesHandler)
+	router.Post("/tour/booking", agenciesHandler.CreateBooking)
+	router.Post("/tour/confirm", agenciesHandler.ConfirmTourBooking)
 }

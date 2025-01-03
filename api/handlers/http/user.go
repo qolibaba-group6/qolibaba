@@ -5,8 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/ehsansobhani/project_structure-3/internal/user/domain"
-	"github.com/ehsansobhani/project_structure-3/internal/user/port"
+	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )
 
@@ -93,31 +92,35 @@ func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// UpdateProfile handles updating user profile (protected)
-func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
-	userIDStr, ok := r.Context().Value("userID").(string)
-	if !ok {
-		http.Error(w, "User ID not found in context", http.StatusBadRequest)
-		return
-	}
 
-	userID, err := uuid.Parse(userIDStr)
-	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
-		return
-	}
+type UpdateRoleRequest struct {
+	Role string `json:"role"`
+}
 
-	var updatedUser domain.User
-	if err := json.NewDecoder(r.Body).Decode(&updatedUser); err != nil {
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
-		return
-	}
-	updatedUser.ID = userID
+func UpdateRole(svc *service.UserService) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		var req UpdateRoleRequest 
+		if err := c.BodyParser(&req); err != nil {
+			return fiber.ErrBadRequest
+		}
 
-	if err := h.Service.UpdateProfile(&updatedUser); err != nil {
-		http.Error(w, "Error updating profile", http.StatusInternalServerError)
-		return
+		userId, err := uuid.Parse(c.Params("id"))
+		if err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, "missing or invalid user id")
+		}
+
+		err = svc.UpdateRole(c.UserContext(), userId, req.Role)
+		if err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		}
+
+		return nil
 	}
+}
+
+func TestHandler(ctx *fiber.Ctx) error {
+	logger := context.GetLogger(ctx.UserContext())
+
 
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(updatedUser); err != nil {

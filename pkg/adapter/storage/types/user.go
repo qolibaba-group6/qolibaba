@@ -8,4 +8,5 @@ type User struct {
 	Password  string `gorm:"not null"`
 	IsAdmin   bool   `gorm:"default:false"`
 	Status    uint8
+	Role      string 
 }

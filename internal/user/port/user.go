@@ -6,11 +6,10 @@ import (
 	"github.com/google/uuid"
 )
 
-// UserRepository defines the interface for user repository operations
-type UserRepository interface {
-	RegisterUser(user *domain.User) error
-	GetUserByEmail(email string) (*domain.User, error)
-	GetUserProfile(id uuid.UUID) (*domain.User, error)
-	UpdateUserProfile(user *domain.User) error
-	DeleteUser(id uuid.UUID) error
+
+type Repo interface {
+	Create(ctx context.Context, user domain.User) (domain.UserUUID, error)
+	GetByID(ctx context.Context, userID domain.UserUUID) (*domain.User, error)
+	GetByFilter(ctx context.Context, filter domain.UserFilter) (*domain.User, error)
+	UpdateRole(ctx context.Context, userID domain.UserUUID, role string) error
 }

@@ -6,11 +6,10 @@ import (
 	"github.com/google/uuid"
 )
 
-// UserService defines the interface for user service operations
-type UserService interface {
-	Register(user *domain.User) error
-	Login(email, password string) (string, error)
-	GetProfile(id uuid.UUID) (*domain.User, error)
-	UpdateProfile(user *domain.User) error
-	DeleteUser(id uuid.UUID) error
+
+type Service interface {
+	Create(ctx context.Context, user domain.User) (domain.UserUUID, error)
+	GetByID(ctx context.Context, userID domain.UserUUID) (*domain.User, error)
+	GetByFilter(ctx context.Context, filter domain.UserFilter) (*domain.User, error)
+	UpdateRole(ctx context.Context, userID domain.UserUUID, role string) error
 }

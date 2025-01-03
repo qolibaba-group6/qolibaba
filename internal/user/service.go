@@ -65,3 +65,7 @@ func (s *service) GetByFilter(ctx context.Context, filter domain.UserFilter) (*d
 
 	return user, nil
 }
+
+func (s *service) UpdateRole(ctx context.Context, id domain.UserUUID, role string) error {
+	return s.repo.UpdateRole(ctx, id, role)
+}

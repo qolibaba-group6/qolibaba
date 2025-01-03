@@ -50,3 +50,14 @@ func (r *userRepository) UpdateUserProfile(user *domain.User) error {
 func (r *userRepository) DeleteUser(id uuid.UUID) error {
 	return r.db.Delete(&domain.User{}, "id = ?", id).Error
 }
+
+func (r *userRepo) UpdateRole(ctx context.Context, userId domain.UserUUID, role string) error {
+	q := r.db.Table("users").Debug().WithContext(ctx)
+
+	err := q.Where("id = ?", userId).Update("role", role).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

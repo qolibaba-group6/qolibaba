@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
 func SignUp(svc *service.UserService) fiber.Handler {
@@ -51,6 +52,31 @@ func SingIn(svc *service.UserService) fiber.Handler {
 		}
 
 		return c.JSON(resp)
+	}
+}
+
+type UpdateRoleRequest struct {
+	Role string `json:"role"`
+}
+
+func UpdateRole(svc *service.UserService) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		var req UpdateRoleRequest 
+		if err := c.BodyParser(&req); err != nil {
+			return fiber.ErrBadRequest
+		}
+
+		userId, err := uuid.Parse(c.Params("id"))
+		if err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, "missing or invalid user id")
+		}
+
+		err = svc.UpdateRole(c.UserContext(), userId, req.Role)
+		if err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		}
+
+		return nil
 	}
 }
 

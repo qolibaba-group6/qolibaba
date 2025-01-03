@@ -16,3 +16,12 @@ func userClaims(ctx *fiber.Ctx) *jwt.UserClaims {
 	}
 	return nil
 }
+
+func contains(slice []string, item string) bool {
+    for _, s := range slice {
+        if s == item {
+            return true
+        }
+    }
+    return false
+}

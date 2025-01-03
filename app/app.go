@@ -87,6 +87,7 @@ func (a *app) setSuperAdmin(db *gorm.DB) error {
 			Password:  a.cfg.SuperAdmin.Password,
 			IsAdmin:   true,
 			Status:    uint8(userDomain.StatusActive),
+			Role:      userDomain.RoleAdmin,
 		}
 		return db.Create(superAdmin).Error
 	}

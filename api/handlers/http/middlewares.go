@@ -1,6 +1,7 @@
 package http
 
 import (
+	"fmt"
 	"qolibaba/pkg/context"
 	"qolibaba/pkg/jwt"
 	"qolibaba/pkg/logger"
@@ -37,15 +38,22 @@ func setUserContext(c *fiber.Ctx) error {
 	return c.Next()
 }
 
-func adminAccessMiddleware(ctx *fiber.Ctx) error {
-	userClaims := userClaims(ctx)
-	if userClaims == nil {
-		return fiber.ErrUnauthorized
-	}
 
-	if !userClaims.IsAdmin {
-		return fiber.NewError(fiber.StatusForbidden, "Access denied: admin privileges required")
-	}
+func rolesAccessMiddleware(requiredRoles []string) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		claims := userClaims(c)
+		if claims == nil {
+			return fiber.ErrUnauthorized
+		}
 
-	return ctx.Next()
+		if !contains(requiredRoles, claims.Role) {
+			return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf(
+				"Access denied: user role '%s' is not authorized. Required roles: %v",
+				claims.Role,
+				requiredRoles,
+			))
+		}
+
+		return c.Next()
+	}
 }

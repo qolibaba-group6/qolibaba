@@ -8,9 +8,9 @@ import (
 	"qolibaba/app/bank"
 	"qolibaba/app/hotel"
 	"qolibaba/config"
+	userDomain "qolibaba/internal/user/domain"
 
 	"github.com/gofiber/fiber/v2"
-	"qolibaba/config"
 )
 
 func Run(appContainer app.App, cfg config.Config) error {
@@ -19,7 +19,7 @@ func Run(appContainer app.App, cfg config.Config) error {
 	api := router.Group("/api/v1", setUserContext)
 
 	registerAuthAPI(appContainer, cfg.Server, api)
-	registerAdminAPI(api, cfg)
+	registerAdminAPI(appContainer, api, cfg)
 	registerRoutemapAPI(api, cfg)
 
 	return router.Listen(fmt.Sprintf(":%d", cfg.Server.HttpPort))
@@ -50,22 +50,32 @@ func registerAuthAPI(appContainer app.App, cfg config.ServerConfig, router fiber
 	userService := service.NewUserService(userPortService, cfg.Secret, cfg.AuthExpMinute, cfg.AuthRefreshMinute)
 	router.Post("/sign-up", SignUp(userService))
 	router.Post("/sign-in", SingIn(userService))
-	router.Get("/test", newAuthMiddleware([]byte(cfg.Secret)), TestHandler)
 }
 
-func registerAdminAPI(router fiber.Router, cfg config.Config) {
+func registerAdminAPI(appContainer app.App, router fiber.Router, cfg config.Config) {
 	adminRouter := router.Group("/admin")
+	userService := service.NewUserService(
+		appContainer.UserService(context.Background()),
+		cfg.Server.Secret,
+		cfg.Server.AuthExpMinute,
+		cfg.Server.AuthRefreshMinute)
 
-	adminRouter.Post("/say-hello", SayHello(cfg.AdminService))
+	authMiddleware := newAuthMiddleware([]byte(cfg.Server.Secret))
+
 	adminRouter.Post("/terminal",
-		newAuthMiddleware([]byte(cfg.Server.Secret)),
-		adminAccessMiddleware,
+		authMiddleware,
+		rolesAccessMiddleware([]string{userDomain.RoleAdmin}), 
 		CreateTerminal(cfg.RoutemapService),
 	)
 	adminRouter.Post("/route",
-		newAuthMiddleware([]byte(cfg.Server.Secret)),
-		adminAccessMiddleware,
+		authMiddleware,
+		rolesAccessMiddleware([]string{userDomain.RoleAdmin}), 
 		CreateRoute(cfg.RoutemapService),
+	)
+	adminRouter.Put("/users/:id/role", 
+		authMiddleware,
+		rolesAccessMiddleware([]string{userDomain.RoleAdmin}), 
+		UpdateRole(userService),
 	)
 }
 

@@ -77,3 +77,14 @@ func (r *userRepo) GetByFilter(ctx context.Context, filter domain.UserFilter) (*
 	
 	return mapper.UserStorage2Domain(user), nil
 }
+
+func (r *userRepo) UpdateRole(ctx context.Context, userId domain.UserUUID, role string) error {
+	q := r.db.Table("users").Debug().WithContext(ctx)
+
+	err := q.Where("id = ?", userId).Update("role", role).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

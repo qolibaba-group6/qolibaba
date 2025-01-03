@@ -16,6 +16,7 @@ func UserDomain2Storage(user domain.User) *types.User {
 		Password:  user.Password,
 		IsAdmin:   user.IsAdmin,
 		Status:    uint8(user.Status),
+		Role:      user.Role,
 	}
 }
 
@@ -28,5 +29,6 @@ func UserStorage2Domain(user types.User) *domain.User {
 		Password:  user.Password,
 		IsAdmin:   user.IsAdmin,
 		Status:    domain.UserStatusType(user.Status),
+		Role:      user.Role,
 	}
 }

@@ -1,6 +1,7 @@
 services:
   qolibaba-api:
     container_name: qolibaba-api
+    restart: always
     build:
       context: .
       dockerfile: ./build/Dockerfile
@@ -14,6 +15,7 @@ services:
 
   routemap-service:
     container_name: routemap-service
+    restart: always
     build:
       context: .
       dockerfile: ./build/routemap/Dockerfile

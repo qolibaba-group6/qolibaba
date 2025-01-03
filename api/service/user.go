@@ -41,13 +41,14 @@ func (s *UserService) SignUp(ctx context.Context, req *pb.UserSignUpRequest) (*p
 		LastName:  req.GetLastName(),
 		Email:     domain.Email(req.GetEmail()),
 		Password:  domain.NewPassword(req.GetPassword()),
+		Role: 	   domain.RoleUser,
 	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	access, refresh, err := s.createTokens(userID, false)
+	access, refresh, err := s.createTokens(userID, domain.RoleUser)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +75,7 @@ func (s *UserService) SingIn(ctx context.Context, req *pb.UserSignInRequest) (*p
 		return nil, ErrInvalidUserPassword
 	}
 	
-	access, refresh, err := s.createTokens(user.ID, user.IsAdmin)
+	access, refresh, err := s.createTokens(user.ID, user.Role)
 	if err != nil {
 		return nil, err
 	}
@@ -85,13 +86,14 @@ func (s *UserService) SingIn(ctx context.Context, req *pb.UserSignInRequest) (*p
 	}, nil
 }
 
-func (s *UserService) createTokens(userID domain.UserUUID, isAdmin bool) (access, refresh string, err error) {
+func (s *UserService) createTokens(userID domain.UserUUID, role string) (access, refresh string, err error) {
 	access, err = jwt.CreateToken([]byte(s.authSecret), &jwt.UserClaims{
 		RegisteredClaims: jwt2.RegisteredClaims{
 			ExpiresAt: jwt2.NewNumericDate(timeutils.AddMinutes(s.expMin, true)),
 		},
 		UserID: userID,
-		IsAdmin: isAdmin,
+		// IsAdmin: isAdmin,
+		Role: role,
 	})
 	if err != nil {
 		return
@@ -102,7 +104,8 @@ func (s *UserService) createTokens(userID domain.UserUUID, isAdmin bool) (access
 			ExpiresAt: jwt2.NewNumericDate(timeutils.AddMinutes(s.refreshExpMin, true)),
 		},
 		UserID: userID,
-		IsAdmin: isAdmin,
+		// IsAdmin: isAdmin,
+		Role: role,
 	})
 
 	if err != nil {
@@ -110,4 +113,8 @@ func (s *UserService) createTokens(userID domain.UserUUID, isAdmin bool) (access
 	}
 
 	return
+}
+
+func (s *UserService) UpdateRole(ctx context.Context, userId domain.UserUUID, role string) error {
+	return s.svc.UpdateRole(ctx, userId, role)
 }

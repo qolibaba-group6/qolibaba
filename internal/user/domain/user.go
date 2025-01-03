@@ -20,6 +20,11 @@ const (
 	StatusBlock
 )
 
+const (
+	RoleAdmin = "admin"
+	RoleUser = "user"
+)
+
 type (
 	UserUUID = uuid.UUID
 	Email    string
@@ -50,6 +55,7 @@ type User struct {
 	Password  string
 	IsAdmin   bool
 	Status    UserStatusType
+	Role	  string
 }
 
 func (u *User) Validate() error {

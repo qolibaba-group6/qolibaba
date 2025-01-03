@@ -190,17 +190,18 @@ func (s *TravelAgencyService) CreateTourBooking(booking *types.TourBooking) (*ty
 		Status:       "pending",
 	}
 
-	claimData, err := json.Marshal(claim)
+	_, err = json.Marshal(claim)
 	if err != nil {
 		return nil, fmt.Errorf("error marshalling claim: %v", err)
 	}
 
-	claimID, err := s.messaging.PublishClaimToBank(claimData)
+	/*claimID, err := s.messaging.PublishMessage(messaging.,claimData)
 	if err != nil {
 		return nil, fmt.Errorf("error sending claim to bank: %v", err)
-	}
+	}*/
 
-	booking.ClaimID = claimID
+	var claimNum uint = 10
+	booking.ClaimID = &claimNum
 	booking.BookingStatus = "pending"
 	booking.Confirmed = false
 

@@ -112,8 +112,14 @@ func NewApp(cfg config.Config) (App, error) {
 		}
 	}(channel)
 
-	messagingClient := messaging.NewMessaging(channel, a.bankService, a.redisClient, a.travelService)
+	messagingClient := messaging.NewMessaging(channel, a.redisClient)
 
+	go func() {
+		err := messagingClient.StartConsumer(messaging.TourQueue, messagingClient.HandleClaim)
+		if err != nil {
+
+		}
+	}()
 	// Set up database connection
 	if err := a.setDB(); err != nil {
 		return nil, fmt.Errorf("failed to set up database: %v", err)

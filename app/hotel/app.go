@@ -2,6 +2,7 @@ package hotel
 
 import (
 	"context"
+	"fmt"
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/redis/go-redis/v9"
 	"github.com/streadway/amqp"
@@ -44,7 +45,7 @@ func (a *app) HotelService() port.Service {
 // setRedis initializes the Redis connection.
 func (a *app) setRedis() error {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     a.cfg.Redis.Host,
+		Addr:     fmt.Sprintf("%s:%d", a.cfg.Redis.Host, a.cfg.Redis.Port),
 		Password: a.cfg.Redis.Password,
 		DB:       0,
 	})
@@ -131,7 +132,20 @@ func NewApp(cfg config.Config) (App, error) {
 		}
 	}(channel)
 
-	messagingClient := messaging.NewMessaging(channel, a.bankService, a.redisClient, a.agenciesService)
+	messagingClient := messaging.NewMessaging(channel, a.redisClient)
+
+	go func() {
+		err := messagingClient.StartConsumer(messaging.ClaimQueue, messagingClient.HandleClaim)
+		if err != nil {
+
+		}
+	}()
+	go func() {
+		err := messagingClient.StartConsumer(messaging.TourQueue, messagingClient.HandleHotelOffer)
+		if err != nil {
+
+		}
+	}()
 
 	a.hotelService = hotels.NewService(storage.NewHotelRepo(a.db), messagingClient)
 

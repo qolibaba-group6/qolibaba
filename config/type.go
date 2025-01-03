@@ -22,7 +22,10 @@ type DBConfig struct {
 }
 
 type ServerConfig struct {
-	HttpPort          uint   `json:"httpPort"`
+	HttpPort          int    `json:"httpPort"`
+	BankHttpPort      int    `json:"bankHttpPort"`
+	HotelHttpPort     int    `json:"hotelHttpPort"`
+	TravelHttpPort    int    `json:"travelHttpPort"`
 	Secret            string `json:"secret"`
 	AuthExpMinute     uint   `json:"authExpMin"`
 	AuthRefreshMinute uint   `json:"authExpRefreshMin"`
@@ -31,7 +34,7 @@ type ServerConfig struct {
 type RedisConfig struct {
 	Host     string `json:"host"`
 	Port     uint   `json:"port"`
-	Password string
+	Password string `json:"password"`
 }
 
 type SuperAdmin struct {

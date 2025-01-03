@@ -30,7 +30,7 @@ func main() {
 	}
 
 	// Initialize the Travel Agency service
-	travelAgencyApp, err := travel_agency.NewApp(cfg)
+	_, err = travel_agency.NewApp(cfg)
 	if err != nil {
 		log.Fatalf("failed to initialize travel agency app: %v", err)
 	}

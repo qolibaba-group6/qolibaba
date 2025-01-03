@@ -1,6 +1,7 @@
 package hotels
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/go-playground/validator/v10"
@@ -131,6 +132,7 @@ func (s *service) CreateBooking(booking *types.Booking) (*types.Booking, error) 
 	if err != nil {
 		return nil, fmt.Errorf("error fetching room details: %v", err)
 	}
+
 	if booking.StartTime.After(booking.EndTime) {
 		return nil, fmt.Errorf("start time must be before end time")
 	}
@@ -143,6 +145,8 @@ func (s *service) CreateBooking(booking *types.Booking) (*types.Booking, error) 
 	}
 
 	booking.TotalPrice = &totalPrice
+	booking.Status = "pending"
+	booking.Confirmed = false
 
 	if booking.IsReferred != nil && *booking.IsReferred == 0 {
 		booking.IsReferred = nil
@@ -153,26 +157,52 @@ func (s *service) CreateBooking(booking *types.Booking) (*types.Booking, error) 
 		return nil, fmt.Errorf("error creating booking: %v", err)
 	}
 
-	claim := types.Claim{
-		BuyerUserID:  booking.UserID,
-		SellerUserID: room.HotelID,
-		Amount:       *newBooking.TotalPrice,
-		ClaimType:    "hotel",
-		ClaimDetails: fmt.Sprintf("Booking for room %d from %s to %s", booking.RoomID, booking.StartTime, booking.EndTime),
-		Status:       "pending",
+	// Create claim
+	claim := map[string]interface{}{
+		"user_id":        booking.UserID,
+		"seller_user_id": 3,
+		"amount":         *newBooking.TotalPrice,
+		"claim_type":     "Hotel",
+		"claim_details":  fmt.Sprintf("Booking for room %d from %s to %s", booking.RoomID, booking.StartTime, booking.EndTime),
 	}
-
 	claimData, err := json.Marshal(claim)
 	if err != nil {
 		return nil, fmt.Errorf("error marshalling claim: %v", err)
 	}
 
-	claimID, err := s.messaging.PublishClaimToBank(claimData)
+	bankServiceURL := "http://127.0.0.1:8888/api/v1/bank/process-unconfirmed-claim"
+	req, err := http.NewRequest(http.MethodPost, bankServiceURL, bytes.NewReader(claimData))
 	if err != nil {
-		return nil, fmt.Errorf("error sending claim to bank: %v", err)
+		return nil, fmt.Errorf("error creating request to bank service: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error sending confirmation to bank service: %v", err)
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Printf("error closing response body: %v", err)
+		}
+	}(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("bank service returned status: %v", resp.Status)
 	}
 
-	newBooking.ClaimID = claimID
+	// Decode the response to get the claim_id
+	var response struct {
+		ClaimID uint `json:"claim_id"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("error decoding response from bank service: %v", err)
+	}
+
+	// Save claim ID to the booking
+	newBooking.ClaimID = &response.ClaimID
 	updatedBooking, err := s.hotelRepo.UpdateBooking(newBooking)
 	if err != nil {
 		return nil, fmt.Errorf("error updating booking with claim ID: %v", err)

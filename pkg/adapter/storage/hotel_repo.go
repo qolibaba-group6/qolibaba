@@ -150,18 +150,9 @@ func (r *HotelRepo) DeleteRoom(id uint) error {
 
 // CreateBooking creates a new booking in the system.
 func (r *HotelRepo) CreateBooking(booking *types.Booking) (*types.Booking, error) {
-	if booking.Confirmed == false {
-		booking.Confirmed = false
-	}
-
-	if booking.StartTime.After(booking.EndTime) {
-		return nil, fmt.Errorf("start time must be before end time")
-	}
-
 	if err := r.db.Create(booking).Error; err != nil {
 		return nil, fmt.Errorf("error creating booking: %v", err)
 	}
-
 	return booking, nil
 }
 

@@ -198,7 +198,13 @@ func (h *HotelHandler) CreateBooking(c *fiber.Ctx) error {
 			"error": fmt.Sprintf("Invalid request body: %v", err),
 		})
 	}
-	createdBooking, err := h.hotelService.CreateBooking(&booking)
+
+	createdBooking, err := h.hotelService.CreateBooking(&types.Booking{
+		RoomID:    booking.RoomID,
+		UserID:    booking.UserID,
+		StartTime: booking.StartTime,
+		EndTime:   booking.EndTime,
+	})
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 			"error": fmt.Sprintf("Error creating booking: %v", err),

@@ -30,7 +30,7 @@ func RunHotel(appContainer hotel.App, serverCfg config.ServerConfig) error {
 
 	registerHotelAPI(appContainer, api)
 
-	return router.Listen(fmt.Sprintf(":%d", serverCfg.HttpPort))
+	return router.Listen(fmt.Sprintf(":%d", serverCfg.HotelHttpPort))
 }
 
 func RunBank(appContainer bank.App, serverCfg config.ServerConfig) error {
@@ -40,7 +40,7 @@ func RunBank(appContainer bank.App, serverCfg config.ServerConfig) error {
 
 	registerBankAPI(appContainer, api)
 
-	return router.Listen(fmt.Sprintf(":%d", serverCfg.HttpPort))
+	return router.Listen(fmt.Sprintf(":%d", serverCfg.BankHttpPort))
 }
 
 func RunAgencies(appContainer travel_agency.App, serverCfg config.ServerConfig) error {
@@ -50,7 +50,7 @@ func RunAgencies(appContainer travel_agency.App, serverCfg config.ServerConfig) 
 
 	registerAgencyAPI(appContainer, api)
 
-	return router.Listen(fmt.Sprintf(":%d", serverCfg.HttpPort))
+	return router.Listen(fmt.Sprintf(":%d", serverCfg.TravelHttpPort))
 }
 
 func registerAuthAPI(appContainer app.App, cfg config.ServerConfig, router fiber.Router) {

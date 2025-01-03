@@ -7,239 +7,145 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/streadway/amqp"
 	"log"
-	bankPort "qolibaba/internal/bank/port"
-	travelPort "qolibaba/internal/travel_agencies/port"
-	"qolibaba/pkg/adapter/storage/types"
 )
 
-const rabbitmqURL = "amqp://guest:guest@localhost:5672/"
-const claimsQueue = "claimsQueue"
-const hotelOfferQueue = "hotel_offer_queue"
-const redisCacheTimeout = 3600
+const (
+	rabbitmqURL       = "amqp://guest:guest@localhost:5672/"
+	redisCacheTimeout = 3600
+	TourQueue         = "tourQueue"
+	ClaimQueue        = "claimsQueue"
+)
 
 type Messaging struct {
 	channel     *amqp.Channel
-	bankService bankPort.Service
 	redisClient *redis.Client
-	tourService travelPort.Service
 }
 
-func NewMessaging(channel *amqp.Channel, bankService bankPort.Service, redisClient *redis.Client, tourService travelPort.Service) *Messaging {
+func NewMessaging(channel *amqp.Channel, redisClient *redis.Client) *Messaging {
 	return &Messaging{
 		channel:     channel,
-		bankService: bankService,
 		redisClient: redisClient,
-		tourService: tourService,
 	}
 }
 
 func ConnectToRabbitMQ() (*amqp.Connection, *amqp.Channel, error) {
 	conn, err := amqp.Dial(rabbitmqURL)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to connect to RabbitMQ: %w", err)
 	}
 
 	channel, err := conn.Channel()
 	if err != nil {
-		return nil, nil, err
+		conn.Close()
+		return nil, nil, fmt.Errorf("failed to create channel: %w", err)
 	}
 
 	return conn, channel, nil
 }
 
-func (m *Messaging) CloseConnection() {
-	if err := m.channel.Close(); err != nil {
-		log.Printf("Error closing channel: %v", err)
+// PublishMessage sends a message to a specified RabbitMQ queue
+func (m *Messaging) PublishMessage(queueName string, message interface{}) error {
+	body, err := json.Marshal(message)
+	if err != nil {
+		return fmt.Errorf("error marshalling message: %w", err)
 	}
-}
 
-func (m *Messaging) PublishClaimToBank(claimData []byte) (*uint, error) {
-	err := m.channel.Publish(
-		"claims_exchange",
-		"claims_routing_key",
-		false,
-		false,
+	err = m.channel.Publish(
+		"",        // exchange
+		queueName, // routing key
+		false,     // mandatory
+		false,     // immediate
 		amqp.Publishing{
 			ContentType: "application/json",
-			Body:        claimData,
+			Body:        body,
 		},
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to publish claim: %w", err)
+		return fmt.Errorf("error publishing message: %w", err)
 	}
-
-	// Consume response
-	msg, err := m.channel.Consume(
-		"claims_response_queue",
-		"",
-		true,
-		false,
-		false,
-		false,
-		nil,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to consume response: %w", err)
-	}
-
-	for response := range msg {
-		var claimResp struct {
-			ClaimID uint `json:"claim_id"`
-		}
-		err := json.Unmarshal(response.Body, &claimResp)
-		if err != nil {
-			return nil, fmt.Errorf("error unmarshalling claim response: %w", err)
-		}
-		return &claimResp.ClaimID, nil
-	}
-
-	return nil, fmt.Errorf("no response from Bank Service")
-}
-
-func (m *Messaging) StartClaimConsumer() {
-	conn, channel, err := ConnectToRabbitMQ()
-	if err != nil {
-		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
-	}
-	defer func(conn *amqp.Connection) {
-		err := conn.Close()
-		if err != nil {
-			log.Printf("Error closing connection: %v", err)
-		}
-	}(conn)
-	defer func(channel *amqp.Channel) {
-		err := channel.Close()
-		if err != nil {
-			log.Printf("Error closing channel: %v", err)
-		}
-	}(channel)
-
-	queue, err := channel.QueueDeclare(
-		claimsQueue,
-		false,
-		false,
-		false,
-		false,
-		nil,
-	)
-	if err != nil {
-		log.Fatalf("Failed to declare queue: %v", err)
-	}
-
-	msgs, err := channel.Consume(
-		queue.Name,
-		"",
-		false,
-		false,
-		false,
-		false,
-		nil,
-	)
-	if err != nil {
-		log.Fatalf("Failed to register a consumer: %v", err)
-	}
-
-	log.Println("Waiting for claims...")
-
-	for msg := range msgs {
-		var claim types.Claim
-		err := json.Unmarshal(msg.Body, &claim)
-		if err != nil {
-			log.Printf("Error unmarshalling claim: %v", err)
-			msg.Nack(false, true)
-			continue
-		}
-
-		_, err = m.bankService.ProcessUnconfirmedClaim(&claim)
-		if err != nil {
-			log.Printf("Error processing claim: %v", err)
-			msg.Nack(false, true)
-		} else {
-			log.Printf("Processed claim: %v", claim)
-			msg.Ack(false)
-		}
-	}
-}
-
-func (m *Messaging) StartHotelOfferConsumer() {
-	conn, channel, err := ConnectToRabbitMQ()
-	if err != nil {
-		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
-	}
-	defer func(conn *amqp.Connection) {
-		err := conn.Close()
-		if err != nil {
-			log.Printf("Error closing connection: %v", err)
-		}
-	}(conn)
-	defer func(channel *amqp.Channel) {
-		err := channel.Close()
-		if err != nil {
-			log.Printf("Error closing channel: %v", err)
-		}
-	}(channel)
-
-	queue, err := channel.QueueDeclare(
-		hotelOfferQueue,
-		false,
-		false,
-		false,
-		false,
-		nil,
-	)
-	if err != nil {
-		log.Fatalf("Failed to declare queue: %v", err)
-	}
-
-	msgs, err := channel.Consume(
-		queue.Name,
-		"",
-		false,
-		false,
-		false,
-		false,
-		nil,
-	)
-	if err != nil {
-		log.Fatalf("Failed to register a consumer: %v", err)
-	}
-
-	log.Println("Waiting for hotel offers...")
-
-	for msg := range msgs {
-		var hotelOffer types.Room
-		err := json.Unmarshal(msg.Body, &hotelOffer)
-		if err != nil {
-			log.Printf("Error unmarshalling hotel offer: %v", err)
-			msg.Nack(false, true)
-			continue
-		}
-
-		err = m.cacheHotelOfferInRedis(hotelOffer)
-		if err != nil {
-			log.Printf("Error caching hotel offer: %v", err)
-			msg.Nack(false, true)
-		} else {
-			log.Printf("Successfully cached hotel offer: %v", hotelOffer)
-			msg.Ack(false)
-		}
-	}
-}
-
-// cacheHotelOfferInRedis caches the hotel offer in Redis
-func (m *Messaging) cacheHotelOfferInRedis(hotelOffer types.Room) error {
-	ctx := context.Background()
-
-	hotelOfferJSON, err := json.Marshal(hotelOffer)
-	if err != nil {
-		return fmt.Errorf("error marshalling hotel offer to JSON: %w", err)
-	}
-
-	err = m.redisClient.Set(ctx, fmt.Sprintf("hotel_offer:%s", hotelOffer.ID), hotelOfferJSON, redisCacheTimeout).Err()
-	if err != nil {
-		return fmt.Errorf("error caching hotel offer in Redis: %w", err)
-	}
-
-	log.Printf("Hotel offer with ID %s cached in Redis", hotelOffer.ID)
+	log.Printf("Message published to queue: %s", queueName)
 	return nil
+}
+
+// StartConsumer consumes messages from a specified RabbitMQ queue
+func (m *Messaging) StartConsumer(queueName string, handler func(amqp.Delivery)) error {
+	msgs, err := m.channel.Consume(
+		queueName, // queue
+		"",        // consumer
+		false,     // auto-ack
+		false,     // exclusive
+		false,     // no-local
+		false,     // no-wait
+		nil,       // args
+	)
+	if err != nil {
+		return fmt.Errorf("failed to register a consumer: %w", err)
+	}
+
+	for msg := range msgs {
+		handler(msg)
+	}
+	return nil
+}
+
+// CacheDataInRedis caches data in Redis with an expiration time
+func (m *Messaging) CacheDataInRedis(key string, data interface{}) error {
+	ctx := context.Background()
+	dataJSON, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("error marshalling data to JSON: %w", err)
+	}
+
+	err = m.redisClient.Set(ctx, key, dataJSON, redisCacheTimeout).Err()
+	if err != nil {
+		return fmt.Errorf("error caching data in Redis: %w", err)
+	}
+
+	log.Printf("Data cached in Redis with key: %s", key)
+	return nil
+}
+
+// HandleClaim processes the claim message and acknowledges it
+func (m *Messaging) HandleClaim(msg amqp.Delivery) {
+	var claim map[string]interface{}
+	err := json.Unmarshal(msg.Body, &claim)
+	if err != nil {
+		log.Printf("Error unmarshalling claim: %v", err)
+		msg.Nack(false, true)
+		return
+	}
+
+	// Process the claim (e.g., pass to bank service)
+	log.Printf("Processed claim: %v", claim)
+
+	// Acknowledge the message to RabbitMQ
+	if err := msg.Ack(false); err != nil {
+		log.Printf("Error acknowledging message: %v", err)
+	}
+}
+
+// HandleHotelOffer processes hotel offer messages and caches them in Redis
+func (m *Messaging) HandleHotelOffer(msg amqp.Delivery) {
+	var hotelOffer map[string]interface{}
+	err := json.Unmarshal(msg.Body, &hotelOffer)
+	if err != nil {
+		log.Printf("Error unmarshalling hotel offer: %v", err)
+		msg.Nack(false, true)
+		return
+	}
+
+	// Cache the hotel offer in Redis
+	err = m.CacheDataInRedis(fmt.Sprintf("hotel_offer:%s", hotelOffer["id"]), hotelOffer)
+	if err != nil {
+		log.Printf("Error caching hotel offer: %v", err)
+		msg.Nack(false, true)
+		return
+	}
+
+	log.Printf("Successfully cached hotel offer: %v", hotelOffer)
+
+	// Acknowledge the message to RabbitMQ
+	if err := msg.Ack(false); err != nil {
+		log.Printf("Error acknowledging message: %v", err)
+	}
 }

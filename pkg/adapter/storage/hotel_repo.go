@@ -206,12 +206,11 @@ func (r *HotelRepo) GetBookingsByUserID(userID uint) ([]types.Booking, error) {
 
 func (r *HotelRepo) ConfirmBooking(bookingID uint) (*types.Booking, error) {
 	var booking types.Booking
+
 	if err := r.db.First(&booking, bookingID).Error; err != nil {
 		return nil, fmt.Errorf("error fetching booking with ID %d: %v", bookingID, err)
 	}
-	if booking.EndTime.After(time.Now()) {
-		return nil, fmt.Errorf("booking is not ended, cannot confirm")
-	}
+
 	booking.Confirmed = true
 	booking.Status = types.BookingStatusCompleted
 	confirmedAt := time.Now()

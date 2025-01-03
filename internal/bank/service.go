@@ -14,11 +14,10 @@ type service struct {
 	messaging *messaging.Messaging
 }
 
-func NewService(repo port.Repo, messaging *messaging.Messaging) port.Service {
+func NewService(repo port.Repo) port.Service {
 	return &service{
-		bankRepo:  repo,
-		validate:  validator.New(),
-		messaging: messaging,
+		bankRepo: repo,
+		validate: validator.New(),
 	}
 }
 

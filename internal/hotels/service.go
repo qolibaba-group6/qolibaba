@@ -193,16 +193,20 @@ func (s *service) CreateBooking(booking *types.Booking) (*types.Booking, error) 
 		return nil, fmt.Errorf("bank service returned status: %v", resp.Status)
 	}
 
-	// Decode the response to get the claim_id
 	var response struct {
-		ClaimID uint `json:"claim_id"`
+		Claim struct {
+			ID uint `json:"ID"`
+		} `json:"claim"`
+		Message string `json:"message"`
 	}
+
+	// Decode the response
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return nil, fmt.Errorf("error decoding response from bank service: %v", err)
 	}
 
 	// Save claim ID to the booking
-	newBooking.ClaimID = &response.ClaimID
+	newBooking.ClaimID = &response.Claim.ID
 	updatedBooking, err := s.hotelRepo.UpdateBooking(newBooking)
 	if err != nil {
 		return nil, fmt.Errorf("error updating booking with claim ID: %v", err)
@@ -264,7 +268,7 @@ func (s *service) ConfirmBooking(bookingID uint) (*types.Booking, error) {
 		return nil, fmt.Errorf("no claimId associated with this booking")
 	}
 
-	bankServiceURL := fmt.Sprintf("http://bank-service:7070/api/v1/bank/process-confirmed-claim/%d", *booking.ClaimID)
+	bankServiceURL := fmt.Sprintf("http://localhost:8888/api/v1/bank/process-confirmed-claim/%d", *booking.ClaimID)
 	req, err := http.NewRequest(http.MethodPost, bankServiceURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request to bank service: %v", err)

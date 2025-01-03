@@ -1,11 +1,8 @@
+// internal/user/domain/user.go
 package domain
 
 import (
-	"crypto/sha256"
-	"encoding/base64"
-	"fmt"
-	"qolibaba/pkg/conv"
-	"regexp"
+	"time"
 
 	"github.com/google/uuid"
 )

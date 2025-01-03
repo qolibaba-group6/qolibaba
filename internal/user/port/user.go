@@ -1,9 +1,11 @@
+// internal/user/port/user.go
 package port
 
 import (
-	"context"
-	"qolibaba/internal/user/domain"
+	"github.com/ehsansobhani/project_structure-3/internal/user/domain"
+	"github.com/google/uuid"
 )
+
 
 type Repo interface {
 	Create(ctx context.Context, user domain.User) (domain.UserUUID, error)

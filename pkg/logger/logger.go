@@ -1,13 +1,35 @@
+// pkg/logger/logger.go
 package logger
 
 import (
-	"log/slog"
 	"os"
+	"time"
 
-	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
-func NewLogger() *slog.Logger {
-	return slog.New(slog.NewJSONHandler(os.Stdout, nil)).
-		With("trace_id", uuid.NewString())
+type Logger struct {
+	*logrus.Logger
+}
+
+// NewLogger initializes a new logger instance with logrus
+func NewLogger() *Logger {
+	log := logrus.New()
+
+	// تنظیم فرمت لاگ به JSON برای قابلیت‌های پردازش بهتر
+	log.SetFormatter(&logrus.JSONFormatter{
+		TimestampFormat: time.RFC3339,
+	})
+
+	// تنظیم خروجی لاگ به STDOUT
+	log.SetOutput(os.Stdout)
+
+	// تنظیم سطح لاگ بر اساس محیط (مثال)
+	if os.Getenv("ENV") == "production" {
+		log.SetLevel(logrus.InfoLevel)
+	} else {
+		log.SetLevel(logrus.DebugLevel)
+	}
+
+	return &Logger{Logger: log}
 }

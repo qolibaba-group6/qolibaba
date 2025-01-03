@@ -1,27 +1,67 @@
 syntax = "proto3";
 
-option go_package = "qolibaba/api/pb";
+package pb;
 
+option go_package = "github.com/ehsansobhani/project_structure-3/api/pb;pb";
 
-
-message UserSignUpRequest {
-    string firstName = 1 [json_name = "firstName"];
-    string lastName = 2 [json_name = "lastName"];
-    string email = 3 [json_name = "email"];
-    string password = 4 [json_name = "password"];
+service UserService {
+    rpc Register (RegisterRequest) returns (RegisterResponse);
+    rpc Login (LoginRequest) returns (LoginResponse);
+    rpc GetUserProfile (GetUserProfileRequest) returns (GetUserProfileResponse);
+    rpc UpdateUserProfile (UpdateUserProfileRequest) returns (UpdateUserProfileResponse);
+    rpc DeleteUser (DeleteUserRequest) returns (DeleteUserResponse);
 }
 
-message UserSignUpResponse {
-    string accessToken = 1 [json_name = "accessToken"];
-    string refreshToken = 2 [json_name = "refreshToken"];
+message RegisterRequest {
+    string name = 1;
+    string email = 2;
+    string password = 3;
 }
 
-message UserSignInRequest {
-    string email = 1 [json_name = "email"];
-    string password = 2 [json_name = "password"];
+message RegisterResponse {
+    string id = 1;
 }
 
-message UserSignInResponse {
-    string accessToken = 1 [json_name = "accessToken"];
-    string refreshToken = 2 [json_name = "refreshToken"];
+message LoginRequest {
+    string email = 1;
+    string password = 2;
+}
+
+message LoginResponse {
+    string token = 1;
+}
+
+message GetUserProfileRequest {
+    string id = 1;
+}
+
+message GetUserProfileResponse {
+    string id = 1;
+    string name = 2;
+    string email = 3;
+    int64 created_at = 4;
+    int64 updated_at = 5;
+}
+
+message UpdateUserProfileRequest {
+    string id = 1;
+    string name = 2;
+    string email = 3;
+    string password = 4;
+}
+
+message UpdateUserProfileResponse {
+    string id = 1;
+    string name = 2;
+    string email = 3;
+    int64 created_at = 4;
+    int64 updated_at = 5;
+}
+
+message DeleteUserRequest {
+    string id = 1;
+}
+
+message DeleteUserResponse {
+    bool success = 1;
 }

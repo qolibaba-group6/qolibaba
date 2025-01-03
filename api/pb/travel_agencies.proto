@@ -1,0 +1,113 @@
+syntax = "proto3";
+
+package pb;
+
+import "google/protobuf/empty.proto";
+
+// افزودن گزینه go_package
+option go_package = "github.com/ehsansobhani/travel_agencies/api/pb;pb";
+
+// پیام‌ها برای Company
+message Company {
+    string id = 1;
+    string name = 2;
+    string owner = 3;
+    string created_at = 4;
+    string updated_at = 5;
+}
+
+message CreateCompanyRequest {
+    string name = 1;
+    string owner = 2;
+}
+
+message GetCompanyRequest {
+    string id = 1;
+}
+
+message UpdateCompanyRequest {
+    string id = 1;
+    string name = 2;
+    string owner = 3;
+}
+
+message DeleteCompanyRequest {
+    string id = 1;
+}
+
+message ListCompaniesRequest {}
+
+message ListCompaniesResponse {
+    repeated Company companies = 1;
+}
+
+// پیام‌ها برای Trip
+message Trip {
+    string id = 1;
+    string company_id = 2;
+    string type = 3;
+    string origin = 4;
+    string destination = 5;
+    string departure_time = 6;
+    string release_date = 7;
+    double tariff = 8;
+    string status = 9;
+    string created_at = 10;
+    string updated_at = 11;
+}
+
+message CreateTripRequest {
+    string company_id = 1;
+    string type = 2;
+    string origin = 3;
+    string destination = 4;
+    string departure_time = 5;
+    string release_date = 6;
+    double tariff = 7;
+    string status = 8;
+}
+
+message GetTripRequest {
+    string id = 1;
+}
+
+message UpdateTripRequest {
+    string id = 1;
+    string company_id = 2;
+    string type = 3;
+    string origin = 4;
+    string destination = 5;
+    string departure_time = 6;
+    string release_date = 7;
+    double tariff = 8;
+    string status = 9;
+}
+
+message DeleteTripRequest {
+    string id = 1;
+}
+
+message ListTripsRequest {
+    string company_id = 1;
+}
+
+message ListTripsResponse {
+    repeated Trip trips = 1;
+}
+
+// سرویس‌های gRPC
+service TravelAgenciesService {
+    // Company Methods
+    rpc CreateCompany(CreateCompanyRequest) returns (Company);
+    rpc GetCompany(GetCompanyRequest) returns (Company);
+    rpc UpdateCompany(UpdateCompanyRequest) returns (Company);
+    rpc DeleteCompany(DeleteCompanyRequest) returns (google.protobuf.Empty);
+    rpc ListCompanies(ListCompaniesRequest) returns (ListCompaniesResponse);
+
+    // Trip Methods
+    rpc CreateTrip(CreateTripRequest) returns (Trip);
+    rpc GetTrip(GetTripRequest) returns (Trip);
+    rpc UpdateTrip(UpdateTripRequest) returns (Trip);
+    rpc DeleteTrip(DeleteTripRequest) returns (google.protobuf.Empty);
+    rpc ListTrips(ListTripsRequest) returns (ListTripsResponse);
+}

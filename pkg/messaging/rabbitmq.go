@@ -1,145 +1,97 @@
+// pkg/messaging/rabbitmq.go
 package messaging
 
 import (
-	"encoding/json"
-	"fmt"
-	"github.com/streadway/amqp"
 	"log"
-	"qolibaba/internal/bank/port"
-	"qolibaba/pkg/adapter/storage/types"
+
+	"github.com/streadway/amqp"
 )
 
-const (
-	rabbitmqURL = "amqp://guest:guest@localhost:5672/"
-	claimsQueue = "claimsQueue"
-)
-
-type Messaging struct {
-	channel     *amqp.Channel
-	bankService port.Service
+// RabbitMQ implements the Messaging interface using RabbitMQ
+type RabbitMQ struct {
+	Conn    *amqp.Connection
+	Channel *amqp.Channel
+	Queue   amqp.Queue
 }
 
-func NewMessaging(channel *amqp.Channel, bankService port.Service) *Messaging {
-	return &Messaging{
-		channel:     channel,
-		bankService: bankService,
-	}
-}
-
-func ConnectToRabbitMQ() (*amqp.Connection, *amqp.Channel, error) {
-	conn, err := amqp.Dial(rabbitmqURL)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	channel, err := conn.Channel()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return conn, channel, nil
-}
-
-func (m *Messaging) PublishClaimToBank(claimData []byte) (string, error) {
-	err := m.channel.Publish(
-		"claims_exchange",
-		"claims_routing_key",
-		false,
-		false,
-		amqp.Publishing{
-			ContentType: "application/json",
-			Body:        claimData,
-		},
-	)
-	if err != nil {
-		return "", fmt.Errorf("failed to publish claim: %w", err)
-	}
-
-	msg, err := m.channel.Consume(
-		"claims_response_queue",
-		"",
-		true,
-		false,
-		false,
-		false,
-		nil,
-	)
-	if err != nil {
-		return "", fmt.Errorf("failed to consume response: %w", err)
-	}
-
-	for response := range msg {
-		var claimResp struct {
-			ClaimID string `json:"claim_id"`
-		}
-		err := json.Unmarshal(response.Body, &claimResp)
-		if err != nil {
-			return "", fmt.Errorf("error unmarshalling claim response: %w", err)
-		}
-		return claimResp.ClaimID, nil
-	}
-
-	return "", fmt.Errorf("no response from Bank Service")
-}
-
-func (m *Messaging) StartClaimConsumer() {
-	conn, channel, err := ConnectToRabbitMQ()
+// NewRabbitMQ creates a new RabbitMQ instance
+func NewRabbitMQ(uri, queueName string) *RabbitMQ {
+	conn, err := amqp.Dial(uri)
 	if err != nil {
 		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
 	}
-	defer func(conn *amqp.Connection) {
-		err := conn.Close()
-		if err != nil {
 
-		}
-	}(conn)
-	defer func(channel *amqp.Channel) {
-		err := channel.Close()
-		if err != nil {
+	ch, err := conn.Channel()
+	if err != nil {
+		log.Fatalf("Failed to open a channel: %v", err)
+	}
 
-		}
-	}(channel)
-
-	queue, err := channel.QueueDeclare(
-		claimsQueue,
-		false,
-		false,
-		false,
-		false,
-		nil,
+	q, err := ch.QueueDeclare(
+		queueName, // name
+		true,      // durable
+		false,     // delete when unused
+		false,     // exclusive
+		false,     // no-wait
+		nil,       // arguments
 	)
 	if err != nil {
-		log.Fatalf("Failed to declare queue: %v", err)
+		log.Fatalf("Failed to declare a queue: %v", err)
 	}
 
-	msgs, err := channel.Consume(
-		queue.Name,
-		"",
-		true,
-		false,
-		false,
-		false,
-		nil,
+	return &RabbitMQ{
+		Conn:    conn,
+		Channel: ch,
+		Queue:   q,
+	}
+}
+
+// Publish sends a message to the specified queue
+func (r *RabbitMQ) Publish(queueName string, message string) error {
+	return r.Channel.Publish(
+		"",        // exchange
+		queueName, // routing key
+		false,     // mandatory
+		false,     // immediate
+		amqp.Publishing{
+			ContentType: "text/plain",
+			Body:        []byte(message),
+		},
+	)
+}
+
+// Consume listens to the specified queue and handles incoming messages
+func (r *RabbitMQ) Consume(queueName string, handler func(message string) error) error {
+	msgs, err := r.Channel.Consume(
+		queueName, // queue
+		"",        // consumer
+		true,      // auto-ack
+		false,     // exclusive
+		false,     // no-local
+		false,     // no-wait
+		nil,       // args
 	)
 	if err != nil {
-		log.Fatalf("Failed to register a consumer: %v", err)
+		return err
 	}
 
-	log.Println("Waiting for claims...")
-
-	for msg := range msgs {
-		var claim types.Claim
-		err := json.Unmarshal(msg.Body, &claim)
-		if err != nil {
-			log.Printf("Error unmarshalling claim: %v", err)
-			continue
+	go func() {
+		for d := range msgs {
+			if err := handler(string(d.Body)); err != nil {
+				log.Printf("Error handling message: %v", err)
+			}
 		}
+	}()
 
-		_, err = m.bankService.ProcessUnconfirmedClaim(&claim)
-		if err != nil {
-			log.Printf("Error processing claim: %v", err)
-		} else {
-			log.Printf("Processed claim: %v", claim)
-		}
+	return nil
+}
+
+// Close closes the RabbitMQ connection and channel
+func (r *RabbitMQ) Close() error {
+	if err := r.Channel.Close(); err != nil {
+		return err
 	}
+	if err := r.Conn.Close(); err != nil {
+		return err
+	}
+	return nil
 }

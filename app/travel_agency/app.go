@@ -75,7 +75,7 @@ func (a *app) setDB() error {
 // setRedis initializes the Redis connection.
 func (a *app) setRedis() error {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     a.cfg.Redis.Host,
+		Addr:     fmt.Sprintf("%s:%d", a.cfg.Redis.Host, a.cfg.Redis.Port),
 		Password: a.cfg.Redis.Password,
 		DB:       0,
 	})

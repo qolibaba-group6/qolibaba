@@ -1,6 +1,7 @@
 package travel_agencies
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -10,7 +11,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 	"qolibaba/internal/travel_agencies/port"
 	"qolibaba/pkg/adapter/storage/types"
 	"qolibaba/pkg/messaging"
@@ -74,7 +74,7 @@ func (s *TravelAgencyService) GetAllHotelsAndVehicles() (map[string]interface{},
 		}
 		return cachedResponse, nil
 	}
-	hotelServiceURL := fmt.Sprintf("%s/api/v1/hotels/get-all", os.Getenv("HOTEL_SERVICE_URL"))
+	hotelServiceURL := " http://127.0.0.1:8887/api/v1/hotels/get-all"
 	req, err := http.NewRequest(http.MethodGet, hotelServiceURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request to hotel service: %v", err)
@@ -176,35 +176,70 @@ func (s *TravelAgencyService) OfferTour(tour *types.Tour) (*types.Tour, error) {
 }
 
 func (s *TravelAgencyService) CreateTourBooking(booking *types.TourBooking) (*types.TourBooking, error) {
+	// Fetch the tour details
 	tour, err := s.repository.GetTourByID(booking.TourID)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching tour: %v", err)
 	}
 
-	claim := types.Claim{
-		BuyerUserID:  booking.UserID,
-		SellerUserID: tour.AgencyID,
-		Amount:       tour.TotalPrice,
-		ClaimType:    "tour",
-		ClaimDetails: fmt.Sprintf("Booking for tour %d from %s to %s", booking.TourID, tour.StartDate, tour.EndDate),
-		Status:       "pending",
+	// Calculate the claim amount (assuming it's the tour's total price)
+	claim := map[string]interface{}{
+		"user_id":        booking.UserID,
+		"seller_user_id": tour.AgencyID,
+		"amount":         tour.TotalPrice,
+		"claim_type":     "tour",
+		"claim_details":  fmt.Sprintf("Booking for tour %d from %s to %s", booking.TourID, tour.StartDate, tour.EndDate),
 	}
 
-	_, err = json.Marshal(claim)
+	// Marshal the claim data
+	claimData, err := json.Marshal(claim)
 	if err != nil {
 		return nil, fmt.Errorf("error marshalling claim: %v", err)
 	}
 
-	/*claimID, err := s.messaging.PublishMessage(messaging.,claimData)
+	// Send claim to Bank Service
+	bankServiceURL := "http://127.0.0.1:8888/api/v1/bank/process-unconfirmed-claim"
+	req, err := http.NewRequest(http.MethodPost, bankServiceURL, bytes.NewReader(claimData))
 	if err != nil {
-		return nil, fmt.Errorf("error sending claim to bank: %v", err)
-	}*/
+		return nil, fmt.Errorf("error creating request to bank service: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
 
-	var claimNum uint = 10
-	booking.ClaimID = &claimNum
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error sending claim to bank service: %v", err)
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Printf("error closing response body: %v", err)
+		}
+	}(resp.Body)
+
+	// Check response status
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("bank service returned status: %v", resp.Status)
+	}
+
+	// Decode the response
+	var response struct {
+		Claim struct {
+			ID uint `json:"ID"`
+		} `json:"claim"`
+		Message string `json:"message"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("error decoding response from bank service: %v", err)
+	}
+
+	// Save claim ID to the booking
+	booking.ClaimID = &response.Claim.ID
 	booking.BookingStatus = "pending"
 	booking.Confirmed = false
 
+	// Save the booking in the database
 	newBooking, err := s.repository.CreateTourBooking(booking)
 	if err != nil {
 		return nil, fmt.Errorf("error saving tour booking: %v", err)
@@ -223,7 +258,7 @@ func (s *TravelAgencyService) ConfirmTourBooking(bookingID uint) (*types.TourBoo
 		return nil, fmt.Errorf("no claimId associated with this booking")
 	}
 
-	bankServiceURL := fmt.Sprintf("http://bank-service:7070/api/v1/bank/process-confirmed-claim/%d", booking.ClaimID)
+	bankServiceURL := fmt.Sprintf("http://localhost:8888/api/v1/bank/process-confirmed-claim/%d", *booking.ClaimID)
 	req, err := http.NewRequest(http.MethodPost, bankServiceURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request to bank service: %v", err)

@@ -124,7 +124,7 @@ func registerAgencyAPI(appContainer travel_agency.App, router fiber.Router) {
 
 	agenciesHandler := NewTravelAgencyHandler(travelAgencies)
 	router.Post("/agency/register", agenciesHandler.RegisterNewAgency)
-	router.Post("/agency/get-all-services", agenciesHandler.GetAllHotelsAndVehiclesHandler)
+	router.Get("/agency/get-all-services", agenciesHandler.GetAllHotelsAndVehiclesHandler)
 	router.Post("/tour/booking", agenciesHandler.CreateBooking)
 	router.Post("/tour/confirm", agenciesHandler.ConfirmTourBooking)
 }

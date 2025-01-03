@@ -1,0 +1,27 @@
+{
+    "db": {
+        "host": "qolibaba-db",
+        "port": 5432,
+        "database": "qolibaba_db",
+        "user": "app",
+        "password": "password123",
+        "schema": "public"
+    },
+    "server": {
+        "httpPort": 8080,
+        "secret": "123456@#$",
+        "authExpMin": 30,
+        "authExpRefreshMin": 180
+    },
+    "superAdmin": {
+        "email": "admin@example.com",
+        "password": "password123"
+    },
+    "adminService": {
+        "port": 50051
+    },
+    "routemapService": {
+        "port": 2000,
+        "host": "routemap-service"
+    }
+}

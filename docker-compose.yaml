@@ -1,0 +1,46 @@
+services:
+  qolibaba-api:
+    container_name: qolibaba-api
+    restart: always
+    build:
+      context: .
+      dockerfile: ./build/Dockerfile
+    ports:
+      - "${HTTP_PORT}:${HTTP_PORT}"
+    volumes:
+      - ./config.json:/app/config.json
+    depends_on:
+      - qolibaba-db
+
+
+  routemap-service:
+    container_name: routemap-service
+    restart: always
+    build:
+      context: .
+      dockerfile: ./build/routemap/Dockerfile
+    ports:
+      - "${ROUTEMAP_PORT}:8080"
+    volumes:
+      - ./config.json:/app/config.json
+    depends_on:
+      - qolibaba-db
+
+
+  qolibaba-db:
+    container_name: qolibaba-db
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+
+
+volumes:
+  db_data:

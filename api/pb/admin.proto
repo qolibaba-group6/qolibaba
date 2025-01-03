@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+option go_package = "qolibaba/api/pb";
+
+
+message AdminSayHelloRequest {
+    string Name = 1 [json_name = "Name"];
+}
+
+message AdminSayHelloResponse {
+    string adminSays = 1 [json_name = "adminSays"];
+}
+
+service AdminService {
+    rpc SayHello(AdminSayHelloRequest) returns (AdminSayHelloResponse);
+}

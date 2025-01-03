@@ -1,14 +1,15 @@
 package config
 
 type Config struct {
-	DB              DBConfig              `json:"db"`
-	Server          ServerConfig          `json:"server"`
-	Redis           RedisConfig           `json:"redis"`
-	SuperAdmin      SuperAdmin            `json:"superAdmin"`
-	RoutemapService RoutemapServiceConfig `json:"routemapService"`
-	AdminService AdminServiceConfig `json:"adminService"`
-	HotelService HotelServiceConfig `json:"hotelService"`
-	BankService  BankServiceConfig `json:"bankService"`
+	DB                          DBConfig                    `json:"db"`
+	Server                      ServerConfig                `json:"server"`
+	Redis                       RedisConfig                 `json:"redis"`
+	SuperAdmin                  SuperAdmin                  `json:"superAdmin"`
+	RoutemapService             RoutemapServiceConfig       `json:"routemapService"`
+	AdminService                AdminServiceConfig          `json:"adminService"`
+	HotelService                HotelServiceConfig          `json:"hotelService"`
+	BankService                 BankServiceConfig           `json:"bankService"`
+	TravelAgenciesServiceConfig TravelAgenciesServiceConfig `json:"travelAgenciesService"`
 }
 
 type DBConfig struct {
@@ -21,15 +22,19 @@ type DBConfig struct {
 }
 
 type ServerConfig struct {
-	HttpPort          uint   `json:"httpPort"`
+	HttpPort          int    `json:"httpPort"`
+	BankHttpPort      int    `json:"bankHttpPort"`
+	HotelHttpPort     int    `json:"hotelHttpPort"`
+	TravelHttpPort    int    `json:"travelHttpPort"`
 	Secret            string `json:"secret"`
 	AuthExpMinute     uint   `json:"authExpMin"`
 	AuthRefreshMinute uint   `json:"authExpRefreshMin"`
 }
 
 type RedisConfig struct {
-	Host string `json:"host"`
-	Port uint   `json:"port"`
+	Host     string `json:"host"`
+	Port     uint   `json:"port"`
+	Password string `json:"password"`
 }
 
 type SuperAdmin struct {
@@ -44,6 +49,9 @@ type HotelServiceConfig struct {
 	Port uint `json:"port"`
 }
 type BankServiceConfig struct {
+	Port uint `json:"port"`
+}
+type TravelAgenciesServiceConfig struct {
 	Port uint `json:"port"`
 }
 

@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 	"qolibaba/api/handlers/http"
-	"qolibaba/app/bank"
+	"qolibaba/app/travel_agency"
 	"qolibaba/config"
 )
 
@@ -22,13 +22,17 @@ func main() {
 
 	cfg := config.MustReadConfig(*configPath)
 
-	bankApp, err := bank.NewApp(cfg)
+	travelAgencyApp, err := travel_agency.NewApp(cfg)
 	if err != nil {
-		log.Fatalf("failed to initialize bank app: %v", err)
+		log.Fatalf("failed to initialize travel agency app: %v", err)
 	}
 
-	err = http.RunBank(bankApp, cfg.Server)
-	if err != nil {
-		log.Fatalf("failed to start HTTP server: %v", err)
-	}
+	go func() {
+		err := http.RunAgencies(travelAgencyApp, cfg.Server)
+		if err != nil {
+			log.Fatalf("failed to start HTTP server for travel agency: %v", err)
+		}
+	}()
+
+	select {}
 }
